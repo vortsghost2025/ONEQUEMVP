@@ -13,19 +13,15 @@ import {
   updateSettings,
 } from './api';
 
-const POLL_INTERVAL = 3000; // ms
+const POLL_INTERVAL = 3000;
 
 export default function App() {
-  // Queue state
   const [queue, setQueue] = useState({ queue_paused: false, pending_count: 0, running_count: 0 });
-  // Tasks list
   const [tasks, setTasks] = useState([]);
-  // Form fields for creating a task
   const [newTask, setNewTask] = useState({ title: '', prompt: '', model: 'llama3', timeout_seconds: 120 });
-  // Settings (RAM/CPU thresholds)
   const [settings, setSettings] = useState({ max_ram_percent: 85, max_cpu_percent: 90, breach_duration_seconds: 5 });
+  const [loading, setLoading] = useState(false);
 
-  // Load queue status periodically
   useEffect(() => {
     const fetchQueue = async () => {
       try {
@@ -40,7 +36,6 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Load tasks periodically
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -55,15 +50,14 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Load settings once
   useEffect(() => {
     const load = async () => {
       try {
         const s = await getSettings();
-        setSettings({ 
-          max_ram_percent: s.max_ram_percent, 
+        setSettings({
+          max_ram_percent: s.max_ram_percent,
           max_cpu_percent: s.max_cpu_percent,
-          breach_duration_seconds: s.breach_duration_seconds 
+          breach_duration_seconds: s.breach_duration_seconds
         });
       } catch (e) {
         console.error('Settings load error', e);
@@ -72,20 +66,20 @@ export default function App() {
     load();
   }, []);
 
-  // Handlers
   const handlePause = async () => {
     await pauseQueue();
     const data = await getQueueStatus();
     setQueue(data);
   };
+
   const handleResume = async () => {
     await resumeQueue();
     const data = await getQueueStatus();
     setQueue(data);
   };
+
   const handleClearFailed = async () => {
     await clearFailed();
-    // refresh tasks
     const data = await getTasks();
     setTasks(data);
   };
@@ -93,10 +87,19 @@ export default function App() {
   const handleCreateTask = async (e) => {
     e.preventDefault();
     if (!newTask.title || !newTask.prompt) return;
-    await createTask(newTask);
-    setNewTask({ title: '', prompt: '', model: 'llama3', timeout_seconds: 120 });
-    const data = await getTasks();
-    setTasks(data);
+    
+    setLoading(true);
+    try {
+      await createTask(newTask);
+      setNewTask({ title: '', prompt: '', model: 'llama3', timeout_seconds: 120 });
+      const data = await getTasks();
+      setTasks(data);
+    } catch (error) {
+      console.error('Create task error:', error);
+      alert('Failed to create task: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = async (id) => {
@@ -104,6 +107,7 @@ export default function App() {
     const data = await getTasks();
     setTasks(data);
   };
+
   const handleRetry = async (id) => {
     await retryTask(id);
     const data = await getTasks();
@@ -114,122 +118,151 @@ export default function App() {
     const { name, value } = e.target;
     setSettings((prev) => ({ ...prev, [name]: Number(value) }));
   };
+
   const handleSettingsSave = async () => {
-    await updateSettings({ 
-      max_ram_percent: settings.max_ram_percent, 
+    await updateSettings({
+      max_ram_percent: settings.max_ram_percent,
       max_cpu_percent: settings.max_cpu_percent,
-      breach_duration_seconds: settings.breach_duration_seconds 
+      breach_duration_seconds: settings.breach_duration_seconds
     });
     const s = await getSettings();
-    setSettings({ 
-      max_ram_percent: s.max_ram_percent, 
+    setSettings({
+      max_ram_percent: s.max_ram_percent,
       max_cpu_percent: s.max_cpu_percent,
-      breach_duration_seconds: s.breach_duration_seconds 
+      breach_duration_seconds: s.breach_duration_seconds
     });
   };
 
-  // Simple inline styles
-  const containerStyle = { display: 'flex', flexDirection: 'column', fontFamily: 'Arial, sans-serif', padding: '10px' };
-  const topBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', border: '1px solid #ccc', padding: '5px' };
-  const mainStyle = { display: 'flex', flexGrow: 1 };
-  const columnStyle = { flex: 1, margin: '5px', border: '1px solid #ddd', padding: '5px' };
-  const footerStyle = { marginTop: '10px', borderTop: '1px solid #ccc', paddingTop: '10px' };
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending':
+        return <span className="status-icon pending" aria-label="Pending">Pending</span>;
+      case 'running':
+        return <span className="status-icon running" aria-label="Running">Running</span>;
+      case 'completed':
+        return <span className="status-icon completed" aria-label="Completed">Completed</span>;
+      case 'failed':
+        return <span className="status-icon failed" aria-label="Failed">Failed</span>;
+      case 'cancelled':
+        return <span className="status-icon cancelled" aria-label="Cancelled">Cancelled</span>;
+      default:
+        return <span className="status-icon" aria-label={status}>{status}</span>;
+    }
+  };
 
   return (
-    <div style={containerStyle}>
-      {/* Top Bar */}
-      <div style={topBarStyle}>
-        <div>
-          <strong>Queue:</strong>{' '}{queue.queue_paused ? 'Paused' : 'Running'} &nbsp;|{' '}
-          <strong>Pending:</strong> {queue.pending_count} {' '}|{' '}
+    <div className="app-container">
+      <header className="queue-bar" role="banner">
+        <div className="queue-status">
+          <strong>Queue:</strong>{' '}
+          <span className={queue.queue_paused ? 'status-paused' : 'status-running'}>
+            {queue.queue_paused ? 'Paused' : 'Running'}
+          </span>
+          <span className="separator">|</span>
+          <strong>Pending:</strong> {queue.pending_count}
+          <span className="separator">|</span>
           <strong>Running:</strong> {queue.running_count}
         </div>
-        <div>
+        <div className="queue-controls">
           {queue.queue_paused ? (
-            <button onClick={handleResume}>Resume</button>
+            <button 
+              onClick={handleResume}
+              className="btn btn-primary"
+              aria-label="Resume queue"
+            >
+              Resume
+            </button>
           ) : (
-            <button onClick={handlePause}>Pause</button>
+            <button 
+              onClick={handlePause}
+              className="btn btn-secondary"
+              aria-label="Pause queue"
+            >
+              Pause
+            </button>
           )}
-          <button onClick={handleClearFailed} style={{ marginLeft: '5px' }}>Clear Failed</button>
+          <button 
+            onClick={handleClearFailed}
+            className="btn btn-warning"
+            aria-label="Clear failed tasks"
+          >
+            Clear Failed
+          </button>
         </div>
-      </div>
-      {/* Main area */}
-      <div style={mainStyle}>
-        {/* Left – Create Task */}
-        <div style={columnStyle}>
-          <h3>Create Task</h3>
+      </header>
+
+      <main className="main-content">
+        <section className="task-form" aria-labelledby="create-task-heading">
+          <h3 id="create-task-heading">Create Task</h3>
           <form onSubmit={handleCreateTask}>
-            <div>
-              <label>Title:<br />
-                <input type="text" value={newTask.title} onChange={(e) => setNewTask({ ...newTask, title: e.target.value })} required />
+            <div className="form-group">
+              <label htmlFor="task-title">
+                Title:
+                <input
+                  id="task-title"
+                  type="text"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  required
+                  aria-required="true"
+                />
               </label>
             </div>
-            <div>
-              <label>Prompt:<br />
-                <textarea value={newTask.prompt} onChange={(e) => setNewTask({ ...newTask, prompt: e.target.value })} required rows={4} />
+            
+            <div className="form-group">
+              <label htmlFor="task-prompt">
+                Prompt:
+                <textarea
+                  id="task-prompt"
+                  value={newTask.prompt}
+                  onChange={(e) => setNewTask({ ...newTask, prompt: e.target.value })}
+                  required
+                  rows={4}
+                  aria-required="true"
+                />
               </label>
             </div>
-            <div>
-              <label>Model:<br />
-                <input type="text" value={newTask.model} onChange={(e) => setNewTask({ ...newTask, model: e.target.value })} />
+            
+            <div className="form-group">
+              <label htmlFor="task-model">
+                Model:
+                <input
+                  id="task-model"
+                  type="text"
+                  value={newTask.model}
+                  onChange={(e) => setNewTask({ ...newTask, model: e.target.value })}
+                />
               </label>
             </div>
-            <div>
-              <label>Timeout (s):<br />
-                <input type="number" value={newTask.timeout_seconds} onChange={(e) => setNewTask({ ...newTask, timeout_seconds: Number(e.target.value) })} min={1} />
+            
+            <div className="form-group">
+              <label htmlFor="task-timeout">
+                Timeout (seconds):
+                <input
+                  id="task-timeout"
+                  type="number"
+                  value={newTask.timeout_seconds}
+                  onChange={(e) => setNewTask({ ...newTask, timeout_seconds: Number(e.target.value) })}
+                  min={1}
+                />
               </label>
             </div>
-            <button type="submit" style={{ marginTop: '5px' }}>Create</button>
+            
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={loading}
+              aria-busy={loading}
+            >
+              {loading ? 'Creating...' : 'Create Task'}
+            </button>
           </form>
-        </div>
-        {/* Right – Task List */}
-        <div style={columnStyle}>
-          <h3>Tasks</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ border: '1px solid #bbb' }}>Title</th>
-                <th style={{ border: '1px solid #bbb' }}>Status</th>
-                <th style={{ border: '1px solid #bbb' }}>Attempts</th>
-                <th style={{ border: '1px solid #bbb' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((t) => (
-                <tr key={t.id}>
-                  <td style={{ border: '1px solid #bbb', padding: '2px' }}>{t.title}</td>
-                  <td style={{ border: '1px solid #bbb', padding: '2px' }}>{t.status}</td>
-                  <td style={{ border: '1px solid #bbb', padding: '2px' }}>{t.attempt_count}</td>
-                  <td style={{ border: '1px solid #bbb', padding: '2px' }}>
-                    {t.status === 'pending' && (
-                      <button onClick={() => handleCancel(t.id)}>Cancel</button>
-                    )}
-                    {t.status === 'failed' && (
-                      <button onClick={() => handleRetry(t.id)}>Retry</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {/* Settings panel */}
-      <div style={footerStyle}>
-        <h4>Settings (thresholds)</h4>
-        <div>
-          <label>Max RAM %:
-            <input type="number" name="max_ram_percent" value={settings.max_ram_percent} onChange={handleSettingsChange} min={0} max={100} />
-          </label>
-          <label style={{ marginLeft: '10px' }}>Max CPU %:
-            <input type="number" name="max_cpu_percent" value={settings.max_cpu_percent} onChange={handleSettingsChange} min={0} max={100} />
-          </label>
-          <label style={{ marginLeft: '10px' }}>Breach Duration (s):
-            <input type="number" name="breach_duration_seconds" value={settings.breach_duration_seconds} onChange={handleSettingsChange} min={1} max={60} />
-          </label>
-          <button onClick={handleSettingsSave} style={{ marginLeft: '10px' }}>Save</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+        </section>
+
+        <section className="tasks-list" aria-labelledby="tasks-heading">
+          <h3 id="tasks-heading">Tasks</h3>
+          <div role="region" aria-label="Tasks table" tabIndex={0}>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Titl
