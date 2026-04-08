@@ -1,0 +1,384 @@
+openapi: 3.0.3
+info:
+  title: OneQueue API
+  description: |
+    A lightweight task queue system with AI model execution capabilities. 
+    Provides REST API for task management, queue control, and system settings.
+  version: 0.1.0
+  contact:
+    name: OneQueue Support
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://localhost:8080
+    description: Docker deployment server
+
+tags:
+  - name: tasks
+    description: Task creation, retrieval, and management
+  - name: queue
+    description: Queue control and monitoring
+  - name: settings
+    description: System settings management
+
+paths:
+  /tasks:
+    post:
+      tags:
+        - tasks
+      summary: Create a new task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '422':
+          description: Validation error
+    get:
+      tags:
+        - tasks
+      summary: List all tasks
+      operationId: listTasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed, cancelled]
+          description: Filter tasks by status
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+
+  /tasks/{task_id}:
+    get:
+      tags:
+        - tasks
+      summary: Get a task by ID
+      operationId: readTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+
+    patch:
+      tags:
+        - tasks
+      summary: Update a task (partial)
+      operationId: patchTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPatch'
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+
+  /tasks/{task_id}/cancel:
+    post:
+      tags:
+        - tasks
+      summary: Cancel a task
+      operationId: cancelTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Task cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+
+  /tasks/{task_id}/retry:
+    post:
+      tags:
+        - tasks
+      summary: Retry a failed or cancelled task
+      operationId: retryTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Task queued for retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Task cannot be retried (not failed/cancelled)
+        '404':
+          description: Task not found
+
+  /queue/status:
+    get:
+      tags:
+        - queue
+      summary: Get queue status
+      operationId: getQueueStatus
+      responses:
+        '200':
+          description: Queue status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queue_paused:
+                    type: boolean
+                  pending_count:
+                    type: integer
+                  running_count:
+                    type: integer
+
+  /queue/pause:
+    post:
+      tags:
+        - queue
+      summary: Pause the queue
+      operationId: pauseQueue
+      responses:
+        '200':
+          description: Queue paused
+
+  /queue/resume:
+    post:
+      tags:
+        - queue
+      summary: Resume the queue
+      operationId: resumeQueue
+      responses:
+        '200':
+          description: Queue resumed
+
+  /queue/clear-failed:
+    post:
+      tags:
+        - queue
+      summary: Clear all failed tasks
+      operationId: clearFailedTasks
+      responses:
+        '200':
+          description: Failed tasks deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: integer
+
+  /settings:
+    get:
+      tags:
+        - settings
+      summary: Get system settings
+      operationId: readSettings
+      responses:
+        '200':
+          description: Settings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+
+    patch:
+      tags:
+        - settings
+      summary: Update system settings
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsPatch'
+      responses:
+        '200':
+          description: Settings updated
+
+components:
+  schemas:
+    TaskCreate:
+      type: object
+      required:
+        - title
+        - prompt
+      properties:
+        title:
+          type: string
+          description: Task title
+        prompt:
+          type: string
+          description: Prompt to send to AI model
+        model:
+          type: string
+          default: llama3
+          description: AI model to use
+        priority:
+          type: integer
+          default: 5
+          description: Task priority (1=highest, 10=lowest)
+        timeout_seconds:
+          type: integer
+          default: 120
+          description: Timeout in seconds
+        max_retries:
+          type: integer
+          default: 2
+          description: Maximum retry attempts
+
+    TaskPatch:
+      type: object
+      properties:
+        title:
+          type: string
+        prompt:
+          type: string
+        model:
+          type: string
+        priority:
+          type: integer
+        timeout_seconds:
+          type: integer
+        max_retries:
+          type: integer
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        prompt:
+          type: string
+        model:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed, cancelled]
+        priority:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+        timeout_seconds:
+          type: integer
+        attempt_count:
+          type: integer
+        max_retries:
+          type: integer
+        output_text:
+          type: string
+          nullable: true
+        error_text:
+          type: string
+          nullable: true
+        cancel_requested:
+          type: boolean
+
+    Settings:
+      type: object
+      properties:
+        id:
+          type: integer
+        max_ram_percent:
+          type: number
+          format: float
+        max_cpu_percent:
+          type: number
+          format: float
+        max_disk_percent:
+          type: number
+          format: float
+        auto_pause:
+          type: boolean
+        default_model:
+          type: string
+        default_timeout_seconds:
+          type: integer
+        queue_paused:
+          type: boolean
+        breach_duration_seconds:
+          type: integer
+
+    SettingsPatch:
+      type: object
+      properties:
+        max_ram_percent:
+          type: number
+          format: float
+        max_cpu_percent:
+          type: number
+          format: float
+        max_disk_percent:
+          type: number
+          format: float
+        auto_pause:
+          type: boolean
+        default_model:
+          type: string
+        default_timeout_seconds:
+          type: integer
+        queue_paused:
+          type: boolean
