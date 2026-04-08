@@ -101,4 +101,10 @@ from app.api import queue as queue_router
 app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for container orchestration."""
+    return {"status": "healthy", "service": "onequeue-api"}
+
+
 # Tables and Settings are created in lifespan context manager above
