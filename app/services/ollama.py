@@ -75,3 +75,49 @@ class OllamaClient:
             ) from exc
         except Exception as exc:
             raise OllamaError(str(exc)) from exc
+
+
+# ─────────────────────────────────────────────
+# Module-level convenience wrappers
+# ─────────────────────────────────────────────
+# These allow OpenAIProxy and router_api to call
+# `ollama.generate()` without instantiating OllamaClient.
+
+_client = OllamaClient()
+
+
+async def generate(prompt: str, model: str, timeout: int = 120) -> str:
+    """
+    Module-level wrapper for OllamaClient.generate().
+
+    Used by OpenAIProxy to route requests to local Ollama models.
+
+    Parameters:
+    -----------
+    prompt: str
+        The prompt to send to the model
+    model: str
+        The model name (e.g., "llama3", "mistral")
+    timeout: int
+        HTTP timeout in seconds (default: 120)
+
+    Returns:
+    --------
+    str
+        The generated response text
+    """
+    return await _client.generate(prompt, model, timeout)
+
+
+async def check_health() -> bool:
+    """
+    Module-level wrapper for OllamaClient.check_health().
+
+    Used by service monitor and health checks.
+
+    Returns:
+    --------
+    bool
+        True if Ollama is reachable, False otherwise
+    """
+    return await _client.check_health()
