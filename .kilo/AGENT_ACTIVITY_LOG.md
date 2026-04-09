@@ -363,3 +363,100 @@
 - Volume persistence for logs
 
 **Status**: All code-level blockers resolved. Ready for deployment testing.
+
+---
+
+## Session: 2026-04-09 (VPS Cleanup & Consolidation)
+
+### 2026-04-09T15:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: DIAGNOSE
+**Description**: User asked Kodee (Hostinger AI) to analyze VPS
+**Findings**:
+1. **DISK CRITICAL**: 38/48 GB used (79%) - 24GB in Docker
+2. **Ollama models**: 5.9 GB in onequeue_ollama-data volume
+3. **Unused projects**: 6 compose stacks, only need onequeue
+4. **Firewall**: UFW inactive (security risk)
+5. **Warning**: GPT partition table needs fix (non-urgent)
+**Projects Running**:
+- onequeue (MVP) ✅ KEEP
+- litellm-qvic (optional fallback) ⚠️ EVALUATE
+- new-api-itw4 (unused) ❌ DELETE
+- traefik-ngkv (optional) ❌ DELETE
+- uptime-kuma-qlyl (health UI) ⚠️ KEEP
+- open-webui-yicw (created, not running) ❌ DELETE
+**Result**: CRITICAL - Must clean up before disk fills completely
+
+### 2026-04-09T15:02:41-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: PLAN
+**Description**: Created comprehensive cleanup plan based on Kodee diagnostics
+**Plan**:
+1. STOP all stacks cleanly
+2. REMOVE all volumes (reclaim ~24GB)
+3. RECREATE only needed volumes (onequeue-data, onequeue-logs, onequeue-ollama-data)
+4. REBUILD onequeue stack with shared-net
+5. VERIFY deployment (health, models, chat endpoints)
+6. ENABLE UFW firewall (allow ports 22, 8081, 11434, 32770)
+7. CLEANUP unused projects (new-api, traefik, open-webui)
+**Estimated Recovery**: ~24GB disk space
+**Risk**: LOW - Clean slate approach ensures no conflicts
+**Result**: Plan ready for execution
+
+### 2026-04-09T15:59:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: ARRIVE
+**Description**: Started UI implementation session
+**Files**: None
+**Result**: success
+
+### 2026-04-09T15:59:10-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Created UI static directory
+**Files**: - CREATED: frontend_ui/
+**Result**: success
+
+### 2026-04-09T15:59:20-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Added UI index.html with dashboard skeleton
+**Files**: - CREATED: frontend_ui/index.html
+**Result**: success
+
+### 2026-04-09T15:59:30-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Added UI style.css with dark neon theme
+**Files**: - CREATED: frontend_ui/style.css
+**Result**: success
+
+### 2026-04-09T15:59:40-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Added UI main.js handling model fetch, task creation, polling
+**Files**: - CREATED: frontend_ui/main.js
+**Result**: success
+
+### 2026-04-09T15:59:50-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Created UI_GUIDE.md documenting access and usage
+**Files**: - CREATED: UI_GUIDE.md
+**Result**: success
+
+### 2026-04-09T16:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: MODIFY
+**Description**: Mounted UI static files at /ui using StaticFiles
+**Files**: - MODIFIED: app/main.py
+**Result**: success
+
+### 2026-04-09T16:00:10-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Created tests directory for UI automation test
+**Files**: - CREATED: tests/
+**Result**: success
+
+### 2026-04-09T16:00:20-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Added automated UI end‑to‑end test using httpx
+**Files**: - CREATED: tests/test_ui_flow.py
+**Result**: success
+
+### 2026-04-09T16:01:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: COMMIT
+**Description**: UI implementation committed
+**Files**: - COMMIT: a158e89 - "feat: Add vanilla UI at /ui ..."
+**Result**: success

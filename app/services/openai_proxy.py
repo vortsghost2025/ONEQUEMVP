@@ -66,9 +66,9 @@ class OpenAIProxy:
     @property
     def nvidia_api(self):
         if self._nvidia_api is None:
-            from app.api import nvidia
+            from app.services.nvidia_api import NvidiaAPI
 
-            self._nvidia_api = nvidia
+            self._nvidia_api = NvidiaAPI()
         return self._nvidia_api
 
     @property
@@ -101,13 +101,24 @@ class OpenAIProxy:
     ) -> ChatCompletionResponse:
         """Create non-streaming chat completion"""
         model_id = request.model
+
+        # Smart routing for "auto" model
+        if model_id == "auto":
+            prompt_text = "\n".join(
+                [f"{m.role}: {m.content}" for m in request.messages]
+            )
+            routing = self.smart_router.route(prompt_text)
+            model_id = routing["recommended_model"]
+            logger.info(f"Smart routing: auto -> {model_id}")
+
         prompt = "\n".join([f"{m.role}: {m.content}" for m in request.messages])
 
         try:
             if self._is_nvidia_model(model_id):
-                from app.api import nvidia
+                from app.services.nvidia_api import NvidiaAPI
 
-                response = await nvidia.generate(
+                nvidia_api = NvidiaAPI()
+                response = await nvidia_api.generate(
                     model=model_id,
                     prompt=prompt,
                     max_tokens=request.max_tokens or 2048,
@@ -170,13 +181,24 @@ class OpenAIProxy:
 
         async def generate_stream() -> AsyncGenerator[str, None]:
             model_id = request.model
+
+            # Smart routing for "auto" model
+            if model_id == "auto":
+                prompt_text = "\n".join(
+                    [f"{m.role}: {m.content}" for m in request.messages]
+                )
+                routing = self.smart_router.route(prompt_text)
+                model_id = routing["recommended_model"]
+                logger.info(f"Smart routing (streaming): auto -> {model_id}")
+
             prompt = "\n".join([f"{m.role}: {m.content}" for m in request.messages])
 
             try:
                 if self._is_nvidia_model(model_id):
-                    from app.api import nvidia
+                    from app.services.nvidia_api import NvidiaAPI
 
-                    async for chunk in nvidia.generate_stream(
+                    nvidia_api = NvidiaAPI()
+                    async for chunk in nvidia_api.generate_stream(
                         model=model_id,
                         prompt=prompt,
                         max_tokens=request.max_tokens or 2048,
