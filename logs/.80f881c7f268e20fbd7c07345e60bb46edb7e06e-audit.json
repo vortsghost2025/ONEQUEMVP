@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "S:\\TAKE10\\logs\\.80f881c7f268e20fbd7c07345e60bb46edb7e06e-audit.json",
+    "files": [
+        {
+            "date": 1775698244690,
+            "name": "S:\\TAKE10\\logs\\mcp-puppeteer-2026-04-08.log",
+            "hash": "ba81e204e8fcf89db9725f6a7d06d0605bffb8ab752ea60ce8f2f69582f5cbf0"
+        },
+        {
+            "date": 1775710596458,
+            "name": "S:\\TAKE10\\logs\\mcp-puppeteer-2026-04-09.log",
+            "hash": "a82402c02108d9017f42ebf0c39dfadd3c8399071a7cb804e2b010b696643437"
+        }
+    ],
+    "hashType": "sha256"
+}

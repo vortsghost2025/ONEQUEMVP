@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, validator
 
 from app.models import Task, TaskStatus, Run
-from app.main import get_session, logger
+from app.utils import get_session, logger
 
 router = APIRouter()
 
@@ -47,6 +47,64 @@ class TaskPatch(BaseModel):
         return v.strip() if v else v
 
 
+# Batch task creation for high-throughput scenarios
+class TaskBatchCreate(BaseModel):
+    tasks: List[TaskCreate] = Field(..., min_length=1, max_length=100)
+
+    @validator("tasks")
+    def validate_tasks(cls, v):
+        if not v:
+            raise ValueError("At least one task required")
+        return v
+
+
+# =============================================================================
+# ROUTES MUST BE ORDERED: Specific routes BEFORE parameterized routes!
+# =============================================================================
+
+# Batch create tasks - MUST come before /{task_id}
+@router.post("/batch", response_model=List[Task], status_code=status.HTTP_201_CREATED)
+def create_task_batch(batch: TaskBatchCreate, session: Session = Depends(get_session)):
+    """Create multiple tasks in a single transaction for better throughput."""
+    logger.info(f"Creating batch of {len(batch.tasks)} tasks")
+    
+    tasks = [
+        Task(
+            title=task.title,
+            prompt=task.prompt,
+            model=task.model or "llama3",
+            priority=task.priority or 5,
+            timeout_seconds=task.timeout_seconds or 120,
+            max_retries=task.max_retries or 2,
+        )
+        for task in batch.tasks
+    ]
+    
+    session.add_all(tasks)
+    session.commit()
+    
+    # Refresh all to get IDs
+    for task in tasks:
+        session.refresh(task)
+    
+    logger.info(f"Created batch of {len(tasks)} tasks")
+    return tasks
+
+
+# List tasks - MUST come before /{task_id}
+@router.get("", response_model=List[Task])
+def list_tasks(
+    status: Optional[TaskStatus] = None, session: Session = Depends(get_session)
+):
+    logger.debug(f"Listing tasks with status filter: {status}")
+    stmt = select(Task)
+    if status:
+        stmt = stmt.where(Task.status == status)
+    tasks = session.exec(stmt).all()
+    logger.debug(f"Found {len(tasks)} tasks")
+    return tasks
+
+
 # Create a new task
 @router.post("", response_model=Task, status_code=status.HTTP_201_CREATED)
 def create_task(task_in: TaskCreate, session: Session = Depends(get_session)):
@@ -66,7 +124,7 @@ def create_task(task_in: TaskCreate, session: Session = Depends(get_session)):
     return task
 
 
-# Get a task by ID
+# Get a task by ID - Parameterized route comes LAST
 @router.get("/{task_id}", response_model=Task)
 def read_task(task_id: int, session: Session = Depends(get_session)):
     logger.debug(f"Reading task id={task_id}")
@@ -143,17 +201,3 @@ def retry_task(task_id: int, session: Session = Depends(get_session)):
     session.refresh(task)
     logger.info(f"Retried task id={task_id}, new attempt_count={task.attempt_count}")
     return task
-
-
-# List tasks (optional filtering)
-@router.get("", response_model=List[Task])
-def list_tasks(
-    status: Optional[TaskStatus] = None, session: Session = Depends(get_session)
-):
-    logger.debug(f"Listing tasks with status filter: {status}")
-    stmt = select(Task)
-    if status:
-        stmt = stmt.where(Task.status == status)
-    tasks = session.exec(stmt).all()
-    logger.debug(f"Found {len(tasks)} tasks")
-    return tasks

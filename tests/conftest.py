@@ -30,8 +30,8 @@ def session(engine):
 
 @pytest.fixture(scope="function")
 def client(engine):
-    from app.main import app, get_session
-
+    from app.main import app
+    from app.utils import get_session
     def override_get_session():
         with Session(engine) as session:
             yield session

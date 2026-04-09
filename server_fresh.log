@@ -1,0 +1,20 @@
+C:\Users\seand\AppData\Local\Programs\Python\Python313\Lib\site-packages\requests\__init__.py:113: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (7.4.1)/charset_normalizer (3.4.6) doesn't match a supported version!
+  warnings.warn(
+C:\Users\seand\AppData\Local\Programs\Python\Python313\Lib\site-packages\pydantic\plugin\_loader.py:50: UserWarning: ImportError while loading the `logfire-plugin` Pydantic plugin, this plugin will not be installed.
+
+ImportError("cannot import name 'ReadableLogRecord' from 'opentelemetry.sdk._logs' (C:\\Users\\seand\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\opentelemetry\\sdk\\_logs\\__init__.py)")
+  warnings.warn(
+INFO:onequeue:Smart Router initialized with 13 models
+INFO:onequeue:Benchmark system ready
+INFO:onequeue:OpenAI-compatible proxy enabled
+INFO:onequeue:Connection pool: pool_size=20, max_overflow=30
+WARNING:onequeue:Could not set WAL mode: 'Connection' object has no attribute 'exec'
+INFO:onequeue:Database tables created (if not existing)
+INFO:onequeue:Created default Settings singleton
+INFO:onequeue:Recovered 1 RUNNING tasks as FAILED
+INFO:onequeue:Background worker started
+INFO:onequeue.worker:Started task 81 (attempt 1)
+INFO:onequeue.worker:Routing to NVIDIA API: microsoft/phi-3-mini-4k-instruct
+ERROR:    [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8081): [winerror 10048] only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:onequeue:Background worker stopped
+Starting server...

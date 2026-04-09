@@ -5,7 +5,7 @@ import httpx
 import os
 
 from app.models import Settings, Task
-from app.main import get_session, logger
+from app.utils import get_session, logger
 
 router = APIRouter()
 

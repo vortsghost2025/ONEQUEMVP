@@ -1,61 +1,63 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+  # OneQueue Backend API
+  onequeue:
+    image: python:3.13-slim
+    container_name: onequeue
+    restart: unless-stopped
     ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
+      - "8081:8081"
     environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
       - OLLAMA_BASE_URL=http://ollama:11434
-      - DATABASE_URL=sqlite:///./data/onequeue.db
-      - LOG_LEVEL=INFO
-      - POLLING_INTERVAL_SECONDS=1.0
+      - POLLING_INTERVAL_SECONDS=1
+      - DATABASE_URL=sqlite:////app/onequeue.db
+    volumes:
+      - ./app:/app
+      - onequeue-data:/app/data
+    working_dir: /app
+    command: >
+      bash -c "pip install -r requirements.txt &&
+               python -m uvicorn app.main:app --host 0.0.0.0 --port 8081"
     depends_on:
-      ollama:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
+      - ollama
+    networks:
+      - onequeue-network
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: ../Dockerfile.frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-    depends_on:
-      - api
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-
+  # Ollama Local Inference
   ollama:
     image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+    networks:
+      - onequeue-network
+
+  # Frontend Development Server (optional)
+  frontend:
+    image: node:20-alpine
+    container_name: onequeue-frontend
     restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    working_dir: /app
+    command: npm run dev -- --host
+    profiles:
+      - dev
+    networks:
+      - onequeue-network
 
 volumes:
+  onequeue-data:
   ollama-data:
+
+networks:
+  onequeue-network:
+    driver: bridge
+

@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, validator
 
 from app.models import Settings
-from app.main import get_session, logger
+from app.utils import get_session, logger
 
 router = APIRouter()
 

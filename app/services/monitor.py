@@ -1,7 +1,20 @@
 import psutil
+import platform
 from app.models import Settings, ThresholdCheckResult
 from sqlmodel import Session, select
-from app.main import engine
+from app.utils import engine
+
+
+def _get_disk_path() -> str:
+    """Get appropriate disk path for current OS.
+
+    Returns:
+        str: Disk path ('/' for Unix-like, 'C:\\' for Windows)
+    """
+    system = platform.system().lower()
+    if system == "windows":
+        return "C:\\"
+    return "/"
 
 
 def _get_current_settings(session: Session) -> Settings:
@@ -26,7 +39,8 @@ def check_thresholds() -> ThresholdCheckResult:
     # Gather system metrics
     cpu = psutil.cpu_percent(interval=0.1)
     ram = psutil.virtual_memory().percent
-    disk = psutil.disk_usage("C:\\").percent
+    disk_path = _get_disk_path()
+    disk = psutil.disk_usage(disk_path).percent
 
     # Load thresholds from DB (no side‑effects)
     with Session(engine) as session:

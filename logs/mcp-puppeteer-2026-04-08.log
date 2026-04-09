@@ -1,0 +1,46 @@
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-08 21:30:44.832"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-08 21:30:44.833"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-08 21:34:58.026"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-08 21:35:14.442"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-08 21:35:14.443"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-08 21:42:06.564"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-08 21:42:26.231"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-08 21:42:26.233"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-08 21:44:34.335"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-08 21:44:34.337"}
+{"arguments":{"url":"http://localhost:5173"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:25:27.800","tool":"puppeteer_navigate"}
+{"0":"n","1":"p","2":"x","level":"info","message":"Launching browser with config:","service":"mcp-puppeteer","timestamp":"2026-04-08 22:25:27.802"}
+{"level":"info","message":"Browser launched successfully","service":"mcp-puppeteer","timestamp":"2026-04-08 22:25:28.730"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-08 22:25:28.730","url":"http://localhost:5173"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-08 22:25:29.553","url":"http://localhost:5173"}
+{"arguments":{"height":900,"name":"onequeue-ui","width":1400},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:25:56.134","tool":"puppeteer_screenshot"}
+{"arguments":{"script":"document.title"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:26:29.401","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":14,"service":"mcp-puppeteer","timestamp":"2026-04-08 22:26:29.402"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 22:26:29.404"}
+{"arguments":{"script":"document.body.innerText"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:26:57.136","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":23,"service":"mcp-puppeteer","timestamp":"2026-04-08 22:26:57.136"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 22:26:57.139"}
+{"arguments":{"script":"document.documentElement.outerHTML.substring(0, 5000)"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:27:21.955","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":53,"service":"mcp-puppeteer","timestamp":"2026-04-08 22:27:21.956"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 22:27:21.958"}
+{"arguments":{"script":"window.location.href"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:27:43.118","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":20,"service":"mcp-puppeteer","timestamp":"2026-04-08 22:27:43.118"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 22:27:43.120"}
+{"arguments":{"selector":"body"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:28:18.601","tool":"puppeteer_click"}
+{"arguments":{"height":900,"name":"onequeue-after-click","width":1400},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:28:40.733","tool":"puppeteer_screenshot"}
+{"arguments":{"url":"http://localhost:5173"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:43:55.623","tool":"puppeteer_navigate"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-08 22:43:55.624","url":"http://localhost:5173"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-08 22:43:56.302","url":"http://localhost:5173"}
+{"arguments":{"height":900,"name":"onequeue-final","width":1400},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:44:17.184","tool":"puppeteer_screenshot"}
+{"arguments":{"script":"document.title"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:44:37.493","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":14,"service":"mcp-puppeteer","timestamp":"2026-04-08 22:44:37.493"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 22:44:37.495"}
+{"arguments":{"script":"document.querySelector('#root').innerHTML.length > 0"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 22:45:07.333","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":52,"service":"mcp-puppeteer","timestamp":"2026-04-08 22:45:07.333"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 22:45:07.335"}
+{"arguments":{"url":"http://localhost:5173"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 23:07:24.654","tool":"puppeteer_navigate"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-08 23:07:24.654","url":"http://localhost:5173"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-08 23:07:25.315","url":"http://localhost:5173"}
+{"arguments":{"script":"\nJSON.stringify({\n  title: document.title,\n  bodyText: document.body.innerText.substring(0, 500),\n  errorElements: Array.from(document.querySelectorAll('.error, [class*=\"error\"]')).map(el => el.innerText).join(', ')\n})\n"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-08 23:11:52.979","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":219,"service":"mcp-puppeteer","timestamp":"2026-04-08 23:11:52.980"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-08 23:11:52.984"}

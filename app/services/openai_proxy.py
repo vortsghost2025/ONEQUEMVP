@@ -109,10 +109,12 @@ class OpenAIProxy:
                     .get("message", {})
                     .get("content", "")
                 )
-                usage = response.get(
-                    "usage",
-                    {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-                )
+                usage_data = response.get("usage", {})
+                usage = {
+                    "prompt_tokens": usage_data.get("prompt_tokens", 0),
+                    "completion_tokens": usage_data.get("completion_tokens", 0),
+                    "total_tokens": usage_data.get("total_tokens", 0),
+                }
             else:
                 # Ollama
                 content = await self.ollama_api.generate(

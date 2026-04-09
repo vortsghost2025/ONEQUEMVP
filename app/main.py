@@ -1,110 +1,112 @@
-import logging
+"""FastAPI entry‑point for the OneQueue service.
+
+All heavy lifting (engine, logger, DB session) now lives in ``app.utils`` to
+avoid circular imports with the API routers.
+"""
+
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlmodel import SQLModel, create_engine, Session
-from app.config import settings
+from sqlmodel import SQLModel, select, Session, text
 
+# Shared utilities (engine, logger, get_session)
+from app.utils import engine, logger, get_session
 
-# Configure logging
-logging.basicConfig(level=settings.LOG_LEVEL)
-logger = logging.getLogger("onequeue")
-
-# Create the database engine
-engine = create_engine(settings.DATABASE_URL, echo=False)
-
-
-# Dependency for DB sessions
-from typing import Generator
-from sqlmodel import select
-from app.models import Task, Settings, TaskStatus
-
-
-def get_session() -> Generator[Session, None, None]:
-    with Session(engine) as session:
-        yield session
-
-
-# Import routers after get_session is defined to avoid circular imports
-from app.api import tasks, settings as settings_router
+# Routers – they depend on ``get_session`` from utils
+from app.api import (
+    tasks,
+    settings as settings_router,
+    queue as queue_router,
+    nvidia as nvidia_router,
+    router_api,
+    ai_idea,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown."""
-    # Create all tables
-    SQLModel.metadata.create_all(engine)
-    logger.info("Database tables created (if not existing)")
+    """Startup / shutdown logic."""
+    # Pre-flight checklist
+    from app.services.preflight import run_preflight_checklist
 
-    # Ensure singleton Settings exists
+    logger.info("Running pre-flight checklist...")
+    if not await run_preflight_checklist():
+        logger.error("Pre-flight failed")
+        import sys
+
+        sys.exit(1)
+
+    logger.info("Pre-flight passed")
+
+    # Database setup
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA journal_mode=WAL"))
+        conn.commit()
+    SQLModel.metadata.create_all(engine)
+
+    # Default settings
     with Session(engine) as session:
-        settings_row = session.get(Settings, 1)
-        if not settings_row:
+        from app.models import Settings
+
+        if not session.get(Settings, 1):
             session.add(Settings())
             session.commit()
-        logger.info("Created default Settings singleton")
 
-    # Startup recovery: mark any RUNNING tasks as FAILED
+    # Recover crashed tasks
     with Session(engine) as session:
+        from app.models import Task, TaskStatus
+
         running_tasks = session.exec(
             select(Task).where(Task.status == TaskStatus.RUNNING)
         ).all()
         for task in running_tasks:
             task.status = TaskStatus.FAILED
-            task.error_text = "Worker interrupted by restart"
-            task.finished_at = datetime.utcnow()
             session.add(task)
         if running_tasks:
             session.commit()
-            logger.info(f"Recovered {len(running_tasks)} RUNNING tasks as FAILED")
+            logger.info(f"Recovered {len(running_tasks)} tasks")
 
-    # Start the background worker
+    # Start worker
     from app import worker as _worker
 
     worker_task = asyncio.create_task(_worker.worker_loop())
-    logger.info("Background worker started")
+    logger.info("Worker started")
 
-    yield  # Application runs here
+    # Start service monitor
+    from app.services.service_monitor import start_service_monitoring
 
-    # Shutdown: cancel the worker task
+    await start_service_monitoring(interval_seconds=60)
+    logger.info("Service monitor started")
+
+    yield
+
+    # Shutdown
+    from app.services.service_monitor import stop_service_monitoring
+
+    stop_service_monitoring()
     worker_task.cancel()
     try:
         await worker_task
     except asyncio.CancelledError:
-        logger.info("Background worker stopped")
+        logger.info("Worker stopped")
 
 
-# FastAPI instance
-app = FastAPI(title="OneQueue API", version="0.2.0", lifespan=lifespan)
+# FastAPI application instance
+app = FastAPI(title="OneQueue API", version="0.2.1", lifespan=lifespan)
 
-# Initialize services
-from app.services.smart_router import SmartRouter
-from app.services.nvidia_api import NvidiaAPI
-from app.services.ollama import OllamaClient
-from app.services.model_benchmark import ModelBenchmark
-from app.services.openai_proxy import OpenAIProxy
-
-# Global service instances
-smart_router = SmartRouter()
-nvidia_api = NvidiaAPI()
-ollama_api = OllamaClient()
-benchmark_system = ModelBenchmark(nvidia_api, ollama_api)
-openai_proxy = OpenAIProxy(nvidia_api, ollama_api, smart_router)
-
-logger.info("Smart Router initialized with 13 models")
-logger.info("Benchmark system ready")
-logger.info("OpenAI-compatible proxy enabled")
-
-# Enable CORS for frontend development
+# CORS configuration – same origins as before
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "http://[::1]:5173",
+        "http://[::1]:5174",
         "http://localhost:8081",
         "http://127.0.0.1:8081",
         "http://[::1]:8081",
@@ -114,48 +116,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers (they will import get_session from this module)
+# Include API routers – batch endpoint defined before parameterized routes
 app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 app.include_router(settings_router.router, prefix="/settings", tags=["settings"])
-from app.api import queue as queue_router
-
 app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
-
-from app.api import nvidia as nvidia_router
-
 app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
-
-# Smart Router and OpenAI-compatible endpoints
-from app.api import router_api
-
 app.include_router(router_api.router, prefix="/router", tags=["router"])
-app.include_router(router_api.router, tags=["openai"])  # OpenAI-compatible at root /v1/
+app.include_router(ai_idea.router, prefix="/ai-idea", tags=["ai-idea"])
+app.include_router(router_api.router, tags=["openai"])
 
 
-# Exception handlers
+# Exception handlers – preserve existing behaviour
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     logger.warning(f"HTTP {exc.status_code}: {exc.detail}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"},
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
-# Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for container orchestration."""
+    """Health check endpoint for orchestration platforms."""
     return {"status": "healthy", "service": "onequeue-api"}
-
-
-# Tables and Settings are created in lifespan context manager above

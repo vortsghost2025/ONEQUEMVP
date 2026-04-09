@@ -1,0 +1,23 @@
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-09 00:56:36.522"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-09 00:56:36.523"}
+{"arguments":{"url":"http://localhost:5173"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:17.235","tool":"puppeteer_navigate"}
+{"0":"n","1":"p","2":"x","level":"info","message":"Launching browser with config:","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:17.243"}
+{"level":"info","message":"Browser launched successfully","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:18.404"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:18.404","url":"http://localhost:5173"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-09 02:20:20.022","url":"http://localhost:5173"}
+{"arguments":{"name":"frontend-home"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:24.715","tool":"puppeteer_screenshot"}
+{"arguments":{"url":"http://localhost:5173/nvidia-test"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:29.328","tool":"puppeteer_navigate"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:29.328","url":"http://localhost:5173/nvidia-test"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-09 02:20:30.371","url":"http://localhost:5173/nvidia-test"}
+{"arguments":{"name":"nvidia-test-page"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:20:35.042","tool":"puppeteer_screenshot"}
+{"arguments":{"url":"https://build.nvidia.com"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:22:08.458","tool":"puppeteer_navigate"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-09 02:22:08.459","url":"https://build.nvidia.com"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-09 02:22:30.072","url":"https://build.nvidia.com"}
+{"arguments":{"name":"nvidia-build-home"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:22:35.034","tool":"puppeteer_screenshot"}
+{"arguments":{"script":"document.body.innerText.substring(0, 2000)"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-09 02:22:41.428","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":42,"service":"mcp-puppeteer","timestamp":"2026-04-09 02:22:41.429"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-09 02:22:41.434"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-09 03:17:08.455"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-09 03:17:08.457"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-09 07:04:44.095"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-09 07:04:44.097"}

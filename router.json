@@ -1,0 +1,171 @@
+{
+  "version": "2.0.0",
+  "updated": "2026-04-09T07:39:40-04:00",
+  "default_model": "meta/llama-4-maverick-17b-128e-instruct",
+  "routing_rules": {
+    "code": {
+      "primary": "qwen/qwen2.5-coder-32b-instruct",
+      "fallback_chain": [
+        "qwen/qwen2.5-coder-32b-instruct",
+        "qwen/qwen3-coder-480b-a35b-instruct",
+        "meta/llama-4-maverick-17b-128e-instruct",
+        "microsoft/phi-3-mini-4k-instruct"
+      ],
+      "speed_score": 9,
+      "quality_score": 10,
+      "avg_latency_ms": 630
+    },
+    "reasoning": {
+      "primary": "deepseek-ai/deepseek-r1-distill-llama-8b",
+      "fallback_chain": [
+        "deepseek-ai/deepseek-r1-distill-llama-8b",
+        "meta/llama-3.1-70b-instruct",
+        "meta/llama-4-maverick-17b-128e-instruct",
+        "microsoft/phi-3-mini-4k-instruct"
+      ],
+      "speed_score": 8,
+      "quality_score": 10,
+      "avg_latency_ms": 730
+    },
+    "math": {
+      "primary": "deepseek-ai/deepseek-r1-distill-llama-8b",
+      "fallback_chain": [
+        "deepseek-ai/deepseek-r1-distill-llama-8b",
+        "meta/llama-3.1-70b-instruct",
+        "microsoft/phi-3-mini-4k-instruct"
+      ],
+      "speed_score": 8,
+      "quality_score": 10,
+      "avg_latency_ms": 730
+    },
+    "creative": {
+      "primary": "meta/llama-4-maverick-17b-128e-instruct",
+      "fallback_chain": [
+        "meta/llama-4-maverick-17b-128e-instruct",
+        "meta/llama-3.1-70b-instruct",
+        "mistralai/mistral-7b-instruct",
+        "microsoft/phi-3-mini-4k-instruct"
+      ],
+      "speed_score": 10,
+      "quality_score": 10,
+      "avg_latency_ms": 560
+    },
+    "general": {
+      "primary": "meta/llama-4-maverick-17b-128e-instruct",
+      "fallback_chain": [
+        "meta/llama-4-maverick-17b-128e-instruct",
+        "meta/llama-3.1-70b-instruct",
+        "microsoft/phi-3.5-vision-instruct",
+        "microsoft/phi-3-mini-4k-instruct"
+      ],
+      "speed_score": 10,
+      "quality_score": 10,
+      "avg_latency_ms": 560
+    },
+    "analysis": {
+      "primary": "meta/llama-4-maverick-17b-128e-instruct",
+      "fallback_chain": [
+        "meta/llama-4-maverick-17b-128e-instruct",
+        "meta/llama-3.1-70b-instruct",
+        "nvidia/llama-3.1-nemotron-ultra",
+        "microsoft/phi-3-mini-4k-instruct"
+      ],
+      "speed_score": 10,
+      "quality_score": 10,
+      "avg_latency_ms": 560
+    },
+    "long_context": {
+      "primary": "meta/llama-3.1-405b-instruct",
+      "fallback_chain": [
+        "meta/llama-3.1-405b-instruct",
+        "meta/llama-4-maverick-17b-128e-instruct",
+        "meta/llama-3.1-70b-instruct"
+      ],
+      "speed_score": 5,
+      "quality_score": 10,
+      "avg_latency_ms": 760,
+      "context_length": 128000
+    },
+    "multilingual": {
+      "primary": "mistralai/mistral-7b-instruct",
+      "fallback_chain": [
+        "mistralai/mistral-7b-instruct",
+        "microsoft/phi-3.5-vision-instruct",
+        "meta/llama-4-maverick-17b-128e-instruct"
+      ],
+      "speed_score": 9,
+      "quality_score": 9,
+      "avg_latency_ms": 690
+    }
+  },
+  "tier_rankings": {
+    "tier_1_fastest_high_quality": [
+      "meta/llama-4-maverick-17b-128e-instruct",
+      "qwen/qwen2.5-coder-32b-instruct",
+      "deepseek-ai/deepseek-r1-distill-llama-8b",
+      "microsoft/phi-3.5-vision-instruct"
+    ],
+    "tier_2_high_quality": [
+      "meta/llama-3.1-70b-instruct",
+      "qwen/qwen3-next-80b-a3b-instruct",
+      "nvidia/llama-3.1-nemotron-ultra"
+    ],
+    "tier_3_fast_but_limited": [
+      "microsoft/phi-3-mini-4k-instruct",
+      "meta/llama-3.1-8b-instruct"
+    ],
+    "tier_specialty": [
+      "qwen/qwen3-coder-480b-a35b-instruct",
+      "meta/llama-3.1-405b-instruct",
+      "google/gemma-3-27b-it"
+    ]
+  },
+  "benchmark_results": {
+    "meta/llama-4-maverick-17b-128e-instruct": {
+      "avg_latency_ms": 560,
+      "quality_score": 10,
+      "speed_score": 10,
+      "cost_tier": "free"
+    },
+    "qwen/qwen2.5-coder-32b-instruct": {
+      "avg_latency_ms": 630,
+      "quality_score": 10,
+      "speed_score": 9,
+      "cost_tier": "free"
+    },
+    "deepseek-ai/deepseek-r1-distill-llama-8b": {
+      "avg_latency_ms": 730,
+      "quality_score": 10,
+      "speed_score": 8,
+      "cost_tier": "free"
+    },
+    "microsoft/phi-3-mini-4k-instruct": {
+      "avg_latency_ms": 520,
+      "quality_score": 8,
+      "speed_score": 10,
+      "cost_tier": "free"
+    }
+  },
+  "priority_rules": [
+    {
+      "condition": "speed_critical",
+      "action": "use_tier_3",
+      "models": ["microsoft/phi-3-mini-4k-instruct", "meta/llama-3.1-8b-instruct"]
+    },
+    {
+      "condition": "quality_critical",
+      "action": "use_flagship",
+      "models": ["meta/llama-4-maverick-17b-128e-instruct", "meta/llama-3.1-70b-instruct"]
+    },
+    {
+      "condition": "code_detected",
+      "action": "use_coding_specialist",
+      "models": ["qwen/qwen2.5-coder-32b-instruct"]
+    },
+    {
+      "condition": "reasoning_detected",
+      "action": "use_reasoning_specialist",
+      "models": ["deepseek-ai/deepseek-r1-distill-llama-8b"]
+    }
+  ]
+}

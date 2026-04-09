@@ -71,3 +71,60 @@ export async function generateNvidia(model, prompt, options = {}) {
     body: JSON.stringify({ model, prompt, ...options }),
   }));
 }
+
+// Smart Router API
+export async function getSmartRoute(prompt) {
+  return handleResponse(await fetch(BASE_URL + '/router/route', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  }));
+}
+
+export async function getRecommendedModels(taskType = null) {
+  const url = taskType 
+    ? `${BASE_URL}/router/models/recommended?task_type=${taskType}`
+    : `${BASE_URL}/router/models/recommended`;
+  return handleResponse(await fetch(url));
+}
+
+export async function getAllModels() {
+  return handleResponse(await fetch(BASE_URL + '/v1/models'));
+}
+
+export async function getModelInfo(modelId) {
+  return handleResponse(await fetch(`${BASE_URL}/router/models/${encodeURIComponent(modelId)}`));
+}
+
+export async function getFallbackChain(modelId) {
+  return handleResponse(await fetch(`${BASE_URL}/router/fallback/${encodeURIComponent(modelId)}`));
+}
+
+// Benchmark API
+export async function runQuickBenchmark() {
+  return handleResponse(await fetch(BASE_URL + '/router/benchmark/quick', {
+    method: 'POST',
+  }));
+}
+
+export async function getBenchmarkResults() {
+  return handleResponse(await fetch(BASE_URL + '/router/benchmark/results'));
+}
+
+// OpenAI-compatible API
+export async function openaiChat(messages, model = 'auto', options = {}) {
+  return handleResponse(await fetch(BASE_URL + '/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages,
+      ...options
+    }),
+  }));
+}
+
+// System Health
+export async function getSystemHealth() {
+  return handleResponse(await fetch(BASE_URL + '/queue/health'));
+}

@@ -6,3 +6,6 @@ coverage.json
 
 # Windows artifacts
 nul
+.aider*
+.env
+.env

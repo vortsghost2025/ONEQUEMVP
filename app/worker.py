@@ -1,13 +1,14 @@
 import asyncio
 import logging
+import platform
 from datetime import datetime
 import psutil
 
-from sqlmodel import Session, select, desc
+from sqlmodel import Session, select
 
 from app.config import settings
-from app.main import engine
-from app.models import Task, Run, Settings
+from app.utils import engine
+from app.models import Task, Run, Settings, TaskStatus
 from app.services.monitor import check_thresholds
 from app.services.ollama import OllamaClient, OllamaError
 from app.services.nvidia_api import NvidiaAPI
@@ -15,189 +16,227 @@ from app.services.smart_router import SmartRouter
 
 logger = logging.getLogger("onequeue.worker")
 
+# ====================== HELPERS ======================
+
+
+def _get_disk_path() -> str:
+    """Return correct disk path for current operating system."""
+    if platform.system().lower() == "windows":
+        return "C:\\"
+    return "/"
+
+
+def _is_nvidia_model(model_id: str, router: SmartRouter) -> bool:
+    """
+    Check if model should use NVIDIA API.
+    Uses centralized SmartRouter logic for single source of truth.
+    """
+    return router._is_nvidia_model(model_id)
+
+
+# ====================== MAIN WORKER ======================
+
 
 async def worker_loop() -> None:
-    """Background worker that processes pending tasks.
+    """
+    Background worker that processes pending tasks.
 
-    The loop respects manual pause (Settings.queue_paused) and auto‑pause
-    based on system thresholds. It processes tasks in priority order,
-    supports cooperative cancellation, enforces per‑task timeouts, logs a
-    ``Run`` record with resource usage, and handles retry logic.
+    - Respects manual pause and auto-pause on sustained high resource usage
+    - Processes tasks by priority (highest first), then by age (oldest first)
+    - Supports cooperative cancellation
+    - Enforces per-task timeouts
+    - Records peak resource usage (before/after execution)
+    - Handles retry logic with attempt counting
     """
     poll_interval = settings.POLLING_INTERVAL_SECONDS
-    client = OllamaClient()
+    ollama_client = OllamaClient()
     nvidia_client = NvidiaAPI()
-    router = SmartRouter()
+    smart_router = SmartRouter()
 
-    # Consecutive breach counters for sustained load detection
+    # Breach counters for sustained load detection
     ram_breach_count = 0
     cpu_breach_count = 0
     disk_breach_count = 0
 
     while True:
-        # Open a new DB session for each iteration
         with Session(engine) as session:
-            # Load the singleton Settings row (create if missing)
-            s = session.get(Settings, 1)
-            if not s:
-                s = Settings()
-                session.add(s)
+            # ====================== LOAD SETTINGS ======================
+            settings_obj = session.get(Settings, 1)
+            if not settings_obj:
+                settings_obj = Settings()
+                session.add(settings_obj)
                 session.commit()
-                session.refresh(s)
+                session.refresh(settings_obj)
 
-        # Manual pause check
-        if s.queue_paused:
-            logger.debug("Queue manually paused")
-            await asyncio.sleep(poll_interval)
-            continue
-
-        # Threshold auto‑pause check with sustained load detection
-        th = check_thresholds()
-        breach_duration = s.breach_duration_seconds
-
-        # Track consecutive breaches for each resource
-        if th.should_pause:
-            if "RAM" in (th.reason or ""):
-                ram_breach_count += 1
-                cpu_breach_count = 0
-                disk_breach_count = 0
-            elif "CPU" in (th.reason or ""):
-                cpu_breach_count += 1
-                ram_breach_count = 0
-                disk_breach_count = 0
-            elif "Disk" in (th.reason or ""):
-                disk_breach_count += 1
-                ram_breach_count = 0
-                cpu_breach_count = 0
-
-            # Only pause if breach sustained for consecutive checks
-            max_breach = max(ram_breach_count, cpu_breach_count, disk_breach_count)
-            if max_breach >= breach_duration:
-                logger.warning(
-                    f"Sustained threshold block: {th.reason} for {max_breach} consecutive seconds"
-                )
+            # ====================== MANUAL PAUSE ======================
+            if settings_obj.queue_paused:
+                logger.debug("Queue is manually paused")
                 await asyncio.sleep(poll_interval)
                 continue
+
+            # ====================== AUTO-PAUSE ON SUSTAINED HIGH LOAD ======================
+            thresholds = check_thresholds()
+            if thresholds.should_pause:
+                # Track consecutive breaches
+                if "RAM" in (thresholds.reason or ""):
+                    ram_breach_count += 1
+                    cpu_breach_count = 0
+                    disk_breach_count = 0
+                elif "CPU" in (thresholds.reason or ""):
+                    cpu_breach_count += 1
+                    ram_breach_count = 0
+                    disk_breach_count = 0
+                elif "Disk" in (thresholds.reason or ""):
+                    disk_breach_count += 1
+                    ram_breach_count = 0
+                    cpu_breach_count = 0
+
+                # Only pause if breach sustained for configured duration
+                max_breach = max(ram_breach_count, cpu_breach_count, disk_breach_count)
+                if max_breach >= settings_obj.breach_duration_seconds:
+                    logger.warning(
+                        f"Sustained high load: {thresholds.reason} "
+                        f"({max_breach}/{settings_obj.breach_duration_seconds}s). Pausing queue."
+                    )
+                    await asyncio.sleep(poll_interval)
+                    continue
             else:
-                logger.debug(
-                    f"Threshold spike detected: {th.reason} (count: {max_breach}/{breach_duration})"
-                )
-        else:
-            # Reset all counters when within thresholds
-            ram_breach_count = 0
-            cpu_breach_count = 0
-            disk_breach_count = 0
+                # Reset counters when healthy
+                ram_breach_count = 0
+                cpu_breach_count = 0
+                disk_breach_count = 0
 
-        # Fetch the next pending task (order by priority DESC, then created_at ASC)
-        stmt = (
-            select(Task)
-            .where(Task.status == "pending")
-            .order_by(Task.priority.desc())
-            .order_by(Task.created_at)
-        )
-        task = session.exec(stmt).first()
-        if not task:
-            await asyncio.sleep(poll_interval)
-            continue
+            # ====================== FETCH NEXT TASK ======================
+            # Priority: highest first, then oldest first
+            task = session.exec(
+                select(Task)
+                .where(Task.status == TaskStatus.PENDING)
+                .order_by(Task.priority.desc())
+                .order_by(Task.created_at.asc())
+            ).first()
 
-        # Cooperative cancellation before starting work
-        if task.cancel_requested:
-            task.status = "cancelled"
-            task.finished_at = datetime.utcnow()
+            if not task:
+                await asyncio.sleep(poll_interval)
+                continue
+
+            # ====================== HANDLE CANCELLATION ======================
+            if task.cancel_requested:
+                task.status = TaskStatus.CANCELLED
+                task.finished_at = datetime.utcnow()
+                session.add(task)
+                session.commit()
+                logger.info(f"Task {task.id} cancelled before execution")
+                continue
+
+            # ====================== MARK AS RUNNING ======================
+            task.status = TaskStatus.RUNNING
+            task.started_at = datetime.utcnow()
             session.add(task)
             session.commit()
-            logger.info(f"Task {task.id} cancelled before execution")
-            continue
+            session.refresh(task)
+            logger.info(f"Started task {task.id} (attempt {task.attempt_count})")
 
-        # Mark task as RUNNING
-        task.status = "running"
-        task.started_at = datetime.utcnow()
-        session.add(task)
-        session.commit()
-        session.refresh(task)  # Ensure task.id is populated
-        logger.info(f"Started task {task.id} (attempt {task.attempt_count})")
+            # ====================== EXECUTE TASK ======================
+            success = False
+            error_text = None
+            output = None
+            start_time = datetime.utcnow()
 
-# Execute the model call with timeout enforcement
-success = False
-error_text = None
-output = None
-start = datetime.utcnow()
+            # Capture resource usage BEFORE execution
+            disk_path = _get_disk_path()
+            cpu_before = psutil.cpu_percent()
+            ram_before = psutil.virtual_memory().percent
+            disk_before = psutil.disk_usage(disk_path).percent
 
-# Determine if this is a NVIDIA model
-is_nvidia = any(
-    task.model.startswith(prefix)
-    for prefix in ["meta/", "deepseek-ai/", "nvidia/", "qwen/", 
-                  "google/", "microsoft/", "mistralai/"]
-)
+            try:
+                async with asyncio.timeout(task.timeout_seconds):
+                    # Route to correct backend using SmartRouter
+                    if _is_nvidia_model(task.model, smart_router):
+                        logger.info(f"Routing to NVIDIA API: {task.model}")
+                        response = await nvidia_client.generate(
+                            model=task.model, prompt=task.prompt, max_tokens=2048
+                        )
+                        output = (
+                            response.get("choices", [{}])[0]
+                            .get("message", {})
+                            .get("content", "")
+                        )
+                    else:
+                        logger.info(f"Routing to Ollama: {task.model}")
+                        output = await ollama_client.generate(
+                            task.prompt, task.model, task.timeout_seconds
+                        )
+                    success = True
 
-try:
-    async with asyncio.timeout(task.timeout_seconds):
-        if is_nvidia:
-            # Use NVIDIA API
-            response = await nvidia_client.generate(
-                model=task.model,
-                prompt=task.prompt,
-                max_tokens=2048
-            )
-            output = response.get("choices", [{}])[0].get("message", {}).get("content", "")
-        else:
-            # Use Ollama
-            output = await client.generate(
-                task.prompt, task.model, task.timeout_seconds
-            )
-        success = True
-except asyncio.TimeoutError:
-    error_text = "Task timed out"
-except OllamaError as exc:
-    error_text = str(exc)
-except Exception as exc:
-    error_text = str(exc)
-        end = datetime.utcnow()
-        duration_ms = int((end - start).total_seconds() * 1000)
-
-        # Record Run information (resource usage captured after execution)
-        assert task.id is not None
-        run = Run(
-            task_id=task.id,
-            attempt_number=task.attempt_count,
-            cpu_percent=psutil.cpu_percent(),
-            ram_percent=psutil.virtual_memory().percent,
-            disk_percent=psutil.disk_usage("C:\\").percent,
-            duration_ms=duration_ms,
-            success=success,
-            error_text=error_text,
-        )
-        session.add(run)
-
-        # Update task based on execution outcome
-        if success:
-            task.status = "completed"
-            task.finished_at = end
-            task.output_text = output
-            task.error_text = None
-            logger.info(f"Task {task.id} completed successfully")
-        else:
-            task.error_text = error_text
-            total_allowed_attempts = 1 + task.max_retries
-            if task.attempt_count >= total_allowed_attempts:
-                task.status = "failed"
-                task.finished_at = end
-                logger.error(
-                    f"Task {task.id} failed permanently after {task.attempt_count} attempts: {error_text}"
-                )
-            else:
-                task.status = "pending"
-                task.attempt_count += 1
+            except asyncio.TimeoutError:
+                error_text = "Task timed out"
                 logger.warning(
-                    f"Task {task.id} failed on attempt {task.attempt_count - 1}. Will retry as attempt {task.attempt_count}."
+                    f"Task {task.id} timed out after {task.timeout_seconds}s"
                 )
 
-            if task.status == "pending":
+            except OllamaError as e:
+                error_text = str(e)
+                logger.error(f"Ollama error on task {task.id}: {e}")
+
+            except Exception as e:
+                error_text = str(e)
+                logger.error(f"Unexpected error on task {task.id}: {e}")
+
+            end_time = datetime.utcnow()
+            duration_ms = int((end_time - start_time).total_seconds() * 1000)
+
+            # Capture resource usage AFTER execution
+            cpu_after = psutil.cpu_percent()
+            ram_after = psutil.virtual_memory().percent
+            disk_after = psutil.disk_usage(disk_path).percent
+
+            # ====================== RECORD RUN METRICS ======================
+            run = Run(
+                task_id=task.id,
+                attempt_number=task.attempt_count,
+                cpu_percent=max(cpu_before, cpu_after),  # Peak usage
+                ram_percent=max(ram_before, ram_after),
+                disk_percent=max(disk_before, disk_after),
+                duration_ms=duration_ms,
+                success=success,
+                error_text=error_text,
+            )
+            session.add(run)
+
+            # ====================== UPDATE TASK STATUS ======================
+            if success:
+                task.status = TaskStatus.COMPLETED
+                task.finished_at = end_time
+                task.output_text = output
+                logger.info(f"Task {task.id} completed successfully")
+
+            else:
+                task.error_text = error_text
+
+                # Check if max retries exceeded
+                if task.attempt_count >= task.max_retries:
+                    task.status = TaskStatus.FAILED
+                    task.finished_at = end_time
+                    logger.error(
+                        f"Task {task.id} failed permanently after "
+                        f"{task.attempt_count} attempts: {error_text}"
+                    )
+                else:
+                    # Retry: set back to pending
+                    task.status = TaskStatus.PENDING
+                    task.attempt_count += 1
+                    logger.warning(
+                        f"Task {task.id} failed on attempt {task.attempt_count - 1}. "
+                        f"Will retry as attempt {task.attempt_count}."
+                    )
+
+            # If task is pending (retry), clear timestamps
+            if task.status == TaskStatus.PENDING:
                 task.started_at = None
                 task.finished_at = None
 
-        session.add(task)
-        session.commit()
+            session.add(task)
+            session.commit()
 
-        # Small sleep before next iteration to avoid a tight loop when no work
-        await asyncio.sleep(poll_interval)
+            # Small delay to prevent tight loop when no work
+            await asyncio.sleep(poll_interval)

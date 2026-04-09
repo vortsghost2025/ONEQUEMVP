@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import NvidiaTest from './NvidiaTest';
+import ModelSelector from './ModelSelector';
+import HealthDashboard from './HealthDashboard';
+import AIdeaChat from './components/AIdeaChat';
 import {
-  getQueueStatus,
-  pauseQueue,
-  resumeQueue,
-  clearFailed,
-  getTasks,
-  createTask,
-  cancelTask,
-  retryTask,
-  getSettings,
-  updateSettings,
+getQueueStatus,
+pauseQueue,
+resumeQueue,
+clearFailed,
+getTasks,
+createTask,
+cancelTask,
+retryTask,
+getSettings,
+updateSettings,
 } from './api';
 
 const POLL_INTERVAL = 3000;
@@ -19,10 +22,11 @@ const POLL_INTERVAL = 3000;
 export default function App() {
   const [queue, setQueue] = useState({ queue_paused: false, pending_count: 0, running_count: 0 });
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState({ title: '', prompt: '', model: 'llama3', timeout_seconds: 120 });
-  const [settings, setSettings] = useState({ max_ram_percent: 85, max_cpu_percent: 90, breach_duration_seconds: 5 });
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('tasks');
+const [newTask, setNewTask] = useState({ title: '', prompt: '', model: 'auto', timeout_seconds: 120 });
+const [settings, setSettings] = useState({ max_ram_percent: 85, max_cpu_percent: 90, breach_duration_seconds: 5 });
+const [loading, setLoading] = useState(false);
+const [activeTab, setActiveTab] = useState('tasks');
+const [recommendedModel, setRecommendedModel] = useState(null);
 
   useEffect(() => {
     const fetchQueue = async () => {
@@ -159,21 +163,23 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <header className="app-header" role="banner">
-        <div className="header-content">
-          <div className="brand">
-            <h1 className="app-title">
-              <span className="title-icon" aria-hidden="true">⚡</span>
-              OneQueue
-            </h1>
-            <p className="app-subtitle">Task Queue for Ollama</p>
-          </div>
-          
-          <nav className="queue-status-nav" aria-label="Queue status">
-            <div className={`status-indicator ${queue.queue_paused ? 'paused' : 'running'}`}>
-              <span className="status-dot" aria-hidden="true"></span>
-              <span className="status-label">{queue.queue_paused ? 'Paused' : 'Running'}</span>
-            </div>
+<header className="app-header" role="banner">
+<div className="header-content">
+<div className="brand">
+<h1 className="app-title">
+<span className="title-icon" aria-hidden="true">⚡</span>
+OneQueue
+</h1>
+<p className="app-subtitle">Universal Inference Router</p>
+</div>
+
+<HealthDashboard />
+
+<nav className="queue-status-nav" aria-label="Queue status">
+<div className={`status-indicator ${queue.queue_paused ? 'paused' : 'running'}`}>
+<span className="status-dot" aria-hidden="true"></span>
+<span className="status-label">{queue.queue_paused ? 'Paused' : 'Running'}</span>
+</div>
             
             <div className="queue-metrics">
               <div className="metric">
@@ -253,23 +259,32 @@ export default function App() {
               Create Task
             </button>
 <button
-role="tab"
-aria-selected={activeTab === 'nvidia'}
-className={`tab ${activeTab === 'nvidia' ? 'active' : ''}`}
-onClick={() => setActiveTab('nvidia')}
->
-<span className="tab-icon" aria-hidden="true">🚀</span>
-NVIDIA
-</button>
-<button
-role="tab"
-aria-selected={activeTab === 'settings'}
-className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
-onClick={() => setActiveTab('settings')}
->
-<span className="tab-icon" aria-hidden="true">⚙️</span>
-Settings
-</button>
+    role="tab"
+    aria-selected={activeTab === 'ai'}
+    className={`tab ${activeTab === 'ai' ? 'active' : ''}`}
+    onClick={() => setActiveTab('ai')}
+  >
+    <span className="tab-icon" aria-hidden="true">💡</span>
+    AI Ideas
+  </button>
+  <button
+    role="tab"
+    aria-selected={activeTab === 'nvidia'}
+    className={`tab ${activeTab === 'nvidia' ? 'active' : ''}`}
+    onClick={() => setActiveTab('nvidia')}
+  >
+    <span className="tab-icon" aria-hidden="true">🚀</span>
+    NVIDIA
+  </button>
+  <button
+    role="tab"
+    aria-selected={activeTab === 'settings'}
+    className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
+    onClick={() => setActiveTab('settings')}
+  >
+    <span className="tab-icon" aria-hidden="true">⚙️</span>
+    Settings
+  </button>
 </div>
 </div>
 
@@ -309,34 +324,33 @@ Settings
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="task-model" className="form-label">
-                    Model
-                  </label>
-                  <input
-                    id="task-model"
-                    type="text"
-                    value={newTask.model}
-                    onChange={(e) => setNewTask({ ...newTask, model: e.target.value })}
-                    className="form-input"
-                  />
-                </div>
+<div className="form-row">
+<div className="form-group">
+<label htmlFor="task-model" className="form-label">
+Model
+</label>
+<ModelSelector
+value={newTask.model}
+onChange={(model) => setNewTask({ ...newTask, model })}
+prompt={newTask.prompt}
+showRecommendation={true}
+/>
+</div>
 
-                <div className="form-group">
-                  <label htmlFor="task-timeout" className="form-label">
-                    Timeout (seconds)
-                  </label>
-                  <input
-                    id="task-timeout"
-                    type="number"
-                    value={newTask.timeout_seconds}
-                    onChange={(e) => setNewTask({ ...newTask, timeout_seconds: Number(e.target.value) })}
-                    min={1}
-                    className="form-input"
-                  />
-                </div>
-              </div>
+<div className="form-group">
+<label htmlFor="task-timeout" className="form-label">
+Timeout (seconds)
+</label>
+<input
+id="task-timeout"
+type="number"
+value={newTask.timeout_seconds}
+onChange={(e) => setNewTask({ ...newTask, timeout_seconds: Number(e.target.value) })}
+min={1}
+className="form-input"
+/>
+</div>
+</div>
 
               <button
                 type="submit"
@@ -426,12 +440,18 @@ Settings
           </section>
         )}
 
-{activeTab === 'nvidia' && (
-<section className="panel nvidia-panel" aria-labelledby="nvidia-heading">
-<h2 id="nvidia-heading" className="panel-title">NVIDIA Models</h2>
-<NvidiaTest />
-</section>
-)}
+{activeTab === 'ai' && (
+        <section className="panel ai-panel" aria-labelledby="ai-heading">
+          <AIdeaChat onTasksCreated={fetchTasks} />
+        </section>
+      )}
+
+      {activeTab === 'nvidia' && (
+        <section className="panel nvidia-panel" aria-labelledby="nvidia-heading">
+          <h2 id="nvidia-heading" className="panel-title">NVIDIA Models</h2>
+          <NvidiaTest />
+        </section>
+      )}
 
 {activeTab === 'settings' && (
 <section className="panel settings-panel" aria-labelledby="settings-heading">
