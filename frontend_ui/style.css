@@ -1,0 +1,82 @@
+/* Dark theme with neon accent */
+:root {
+  --bg: #0d0d0d;
+  --fg: #e0e0e0;
+  --accent: #00ff99;
+  --header-bg: #111;
+  --header-fg: #00ff99;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+  padding: 1rem;
+}
+
+header {
+  background: var(--header-bg);
+  color: var(--header-fg);
+  padding: 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+h1, h2 {
+  margin-bottom: 0.5rem;
+}
+
+section {
+  margin-bottom: 2rem;
+}
+
+#model-list, select, textarea, button {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+button {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #00cc80;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background: var(--header-bg);
+  color: var(--header-fg);
+}
+
+td, th {
+  border: 1px solid #333;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+tbody tr:nth-child(even) {
+  background: #111;
+}
+
+tbody tr:hover {
+  background: var(--accent);
+  color: var(--bg);
+}

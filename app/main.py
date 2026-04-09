@@ -139,6 +139,7 @@ app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
 app.include_router(router_api.router, prefix="/router", tags=["router"])
 app.include_router(ai_idea.router, prefix="/ai-idea", tags=["ai-idea"])
 
+app.include_router(router_api.router, tags=["openai"])
 
 # Exception handlers – preserve existing behaviour
 @app.exception_handler(HTTPException)
@@ -157,3 +158,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 async def health_check():
     """Health check endpoint for orchestration platforms."""
     return {"status": "healthy", "service": "onequeue-api"}
+
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/ui", StaticFiles(directory="frontend_ui", html=True), name="ui")

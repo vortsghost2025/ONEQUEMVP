@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OneQueue Dashboard</title>
+  <link rel="stylesheet" href="/ui/style.css" />
+</head>
+<body>
+  <header>
+    <h1>OneQueue Dashboard</h1>
+  </header>
+  <section id="models">
+    <h2>Available Models</h2>
+    <ul id="model-list"></ul>
+  </section>
+  <section id="new-task">
+    <h2>Create Task</h2>
+    <form id="task-form">
+      <label for="model">Model:</label>
+      <select id="model" name="model" required></select>
+      <label for="prompt">Prompt:</label>
+      <textarea id="prompt" name="prompt" rows="3" required></textarea>
+      <button type="submit">Run</button>
+    </form>
+  </section>
+  <section id="tasks">
+    <h2>Task History</h2>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Model</th><th>Prompt</th><th>Status</th><th>Result</th></tr>
+      </thead>
+      <tbody id="task-table-body"></tbody>
+    </table>
+  </section>
+  <script src="/ui/main.js"></script>
+</body>
+</html>
