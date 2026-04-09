@@ -10,6 +10,8 @@ from app.main import engine
 from app.models import Task, Run, Settings
 from app.services.monitor import check_thresholds
 from app.services.ollama import OllamaClient, OllamaError
+from app.services.nvidia_api import NvidiaAPI
+from app.services.smart_router import SmartRouter
 
 logger = logging.getLogger("onequeue.worker")
 
@@ -24,6 +26,8 @@ async def worker_loop() -> None:
     """
     poll_interval = settings.POLLING_INTERVAL_SECONDS
     client = OllamaClient()
+    nvidia_client = NvidiaAPI()
+    router = SmartRouter()
 
     # Consecutive breach counters for sustained load detection
     ram_breach_count = 0
@@ -113,23 +117,41 @@ async def worker_loop() -> None:
         session.refresh(task)  # Ensure task.id is populated
         logger.info(f"Started task {task.id} (attempt {task.attempt_count})")
 
-        # Execute the model call with timeout enforcement
-        success = False
-        error_text = None
-        output = None
-        start = datetime.utcnow()
-        try:
-            async with asyncio.timeout(task.timeout_seconds):
-                output = await client.generate(
-                    task.prompt, task.model, task.timeout_seconds
-                )
-                success = True
-        except asyncio.TimeoutError:
-            error_text = "Task timed out"
-        except OllamaError as exc:
-            error_text = str(exc)
-        except Exception as exc:
-            error_text = str(exc)
+# Execute the model call with timeout enforcement
+success = False
+error_text = None
+output = None
+start = datetime.utcnow()
+
+# Determine if this is a NVIDIA model
+is_nvidia = any(
+    task.model.startswith(prefix)
+    for prefix in ["meta/", "deepseek-ai/", "nvidia/", "qwen/", 
+                  "google/", "microsoft/", "mistralai/"]
+)
+
+try:
+    async with asyncio.timeout(task.timeout_seconds):
+        if is_nvidia:
+            # Use NVIDIA API
+            response = await nvidia_client.generate(
+                model=task.model,
+                prompt=task.prompt,
+                max_tokens=2048
+            )
+            output = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        else:
+            # Use Ollama
+            output = await client.generate(
+                task.prompt, task.model, task.timeout_seconds
+            )
+        success = True
+except asyncio.TimeoutError:
+    error_text = "Task timed out"
+except OllamaError as exc:
+    error_text = str(exc)
+except Exception as exc:
+    error_text = str(exc)
         end = datetime.utcnow()
         duration_ms = int((end - start).total_seconds() * 1000)
 
