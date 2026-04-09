@@ -5,3 +5,4 @@ psutil
 httpx
 pydantic-settings
 python-dotenv
+tenacity>=8.2.0

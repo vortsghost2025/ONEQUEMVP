@@ -81,6 +81,11 @@ async def lifespan(app: FastAPI):
     await start_service_monitoring(interval_seconds=60)
     logger.info("Service monitor started")
 
+    # Integrate graceful shutdown
+    from app.services.graceful_shutdown import integrate_with_fastapi
+
+    integrate_with_fastapi(app)
+
     yield
 
     # Shutdown
