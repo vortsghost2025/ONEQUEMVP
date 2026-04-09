@@ -10,6 +10,7 @@ from app.main import engine
 from app.models import Task, Run, Settings
 from app.services.monitor import check_thresholds
 from app.services.ollama import OllamaClient, OllamaError
+from app.services.nvidia_api import NvidiaAPI
 
 logger = logging.getLogger("onequeue.worker")
 
@@ -120,9 +121,18 @@ async def worker_loop() -> None:
         start = datetime.utcnow()
         try:
             async with asyncio.timeout(task.timeout_seconds):
-                output = await client.generate(
-                    task.prompt, task.model, task.timeout_seconds
-                )
+                if "/" in task.model:
+                    nvidia_client = NvidiaAPI()
+                    result = await nvidia_client.generate(
+                        model=task.model,
+                        prompt=task.prompt,
+                        max_tokens=task.timeout_seconds,
+                    )
+                    output = result["choices"][0]["message"]["content"]
+                else:
+                    output = await client.generate(
+                        task.prompt, task.model, task.timeout_seconds
+                    )
                 success = True
         except asyncio.TimeoutError:
             error_text = "Task timed out"
