@@ -6,10 +6,12 @@ class AppSettings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/onequeue.db"
     LOG_LEVEL: str = "INFO"
     POLLING_INTERVAL_SECONDS: float = 1.0
+    NVIDIA_API_KEY: str = ""
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = AppSettings()

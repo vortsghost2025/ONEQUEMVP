@@ -1,7 +1,7 @@
 // src/api.js
-// Simple fetch wrapper for the OneQueue backend (http://127.0.0.1:8080)
+// OneQueue backend API - port should match uvicorn startup
 
-const BASE_URL = 'http://127.0.0.1:3000';
+const BASE_URL = 'http://127.0.0.1:8081';
 
 async function handleResponse(response) {
   if (!response.ok) {
@@ -53,4 +53,21 @@ export async function cancelTask(id) {
 }
 export async function retryTask(id) {
   return handleResponse(await fetch(BASE_URL + '/tasks/' + id + '/retry', { method: 'POST' }));
+}
+
+// NVIDIA API
+export async function getNvidiaModels() {
+  return handleResponse(await fetch(BASE_URL + '/nvidia/models'));
+}
+
+export async function getCuratedModels() {
+  return handleResponse(await fetch(BASE_URL + '/nvidia/curated'));
+}
+
+export async function generateNvidia(model, prompt, options = {}) {
+  return handleResponse(await fetch(BASE_URL + '/nvidia/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, prompt, ...options }),
+  }));
 }

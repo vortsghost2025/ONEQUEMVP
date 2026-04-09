@@ -86,8 +86,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
+        "http://[::1]:5173",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://[::1]:8081",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -100,6 +102,10 @@ app.include_router(settings_router.router, prefix="/settings", tags=["settings"]
 from app.api import queue as queue_router
 
 app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
+
+from app.api import nvidia as nvidia_router
+
+app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
 
 
 # Exception handlers

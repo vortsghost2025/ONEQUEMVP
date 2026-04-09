@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import Dict
+import httpx
+import os
 
 from app.models import Settings, Task
 from app.main import get_session, logger
@@ -22,7 +24,9 @@ def get_queue_status(session: Session = Depends(get_session)):
 
     pending = len(session.exec(select(Task).where(Task.status == "pending")).all())
     running = len(session.exec(select(Task).where(Task.status == "running")).all())
-    logger.debug(f"Queue status: paused={settings.queue_paused}, pending={pending}, running={running}")
+    logger.debug(
+        f"Queue status: paused={settings.queue_paused}, pending={pending}, running={running}"
+    )
     return {
         "queue_paused": settings.queue_paused,
         "pending_count": pending,
@@ -75,3 +79,38 @@ def clear_failed_tasks(session: Session = Depends(get_session)):
     session.commit()
     logger.info(f"Cleared {len(failed_tasks)} failed tasks")
     return {"deleted": len(failed_tasks)}
+
+
+@router.get("/health")
+async def system_health():
+    """Check health of all connected services."""
+    from app.config import settings
+
+    health = {
+        "backend": "healthy",
+        "ollama": "unknown",
+        "nvidia_api": "unknown",
+        "nvidia_key_loaded": bool(settings.NVIDIA_API_KEY),
+    }
+
+    # Check Ollama
+    ollama_url = settings.OLLAMA_BASE_URL
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{ollama_url}/api/tags", timeout=2.0)
+            if response.status_code == 200:
+                health["ollama"] = "healthy"
+            else:
+                health["ollama"] = f"error_{response.status_code}"
+    except Exception as e:
+        health["ollama"] = f"offline"
+
+    # Check NVIDIA API key
+    if settings.NVIDIA_API_KEY and settings.NVIDIA_API_KEY.startswith("nvapi-"):
+        health["nvidia_api"] = "configured"
+    elif settings.NVIDIA_API_KEY:
+        health["nvidia_api"] = "invalid_format"
+    else:
+        health["nvidia_api"] = "missing_key"
+
+    return health
