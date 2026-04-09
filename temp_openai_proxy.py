@@ -102,90 +102,9 @@ class OpenAIProxy:
         """Create non-streaming chat completion"""
         model_id = request.model
 
-        # Smart routing for "auto" model
-        if model_id == "auto":
-            prompt_text = "\n".join(
-                [f"{m.role}: {m.content}" for m in request.messages]
-            )
-            model_id, model_info = self.smart_router.select_model(prompt_text)
-            logger.info(f"Smart routing: auto -> {model_id}")
-
-        prompt = "\n".join([f"{m.role}: {m.content}" for m in request.messages])
-
-        try:
-            if self._is_nvidia_model(model_id):
-                from app.services.nvidia_api import NvidiaAPI
-
-                nvidia_api = NvidiaAPI()
-                response = await nvidia_api.generate(
-                    model=model_id,
-                    prompt=prompt,
-                    max_tokens=request.max_tokens or 2048,
-                    temperature=request.temperature or 0.7,
-                )
-
-                content = (
-                    response.get("choices", [{}])[0]
-                    .get("message", {})
-                    .get("content", "")
-                )
-
-                usage = response.get(
-                    "usage",
-                    {
-                        "prompt_tokens": 100,
-                        "completion_tokens": 50,
-                        "total_tokens": 150,
-                    },
-                )
-
-            else:
-                from app.services import ollama
-
-                content = await ollama.generate(
-                    prompt=prompt, model=model_id, timeout=120
-                )
-
-                usage = {
-                    "prompt_tokens": 100,
-                    "completion_tokens": 50,
-                    "total_tokens": 150,
-                }
-
-            return ChatCompletionResponse(
-                id=self._generate_id(),
-                created=self._get_timestamp(),
-                model=model_id,
-                choices=[
-                    ChatCompletionChoice(
-                        index=0,
-                        message=ChatMessage(role="assistant", content=content),
-                        finish_reason="stop",
-                    )
-                ],
-                usage=UsageStats(**usage),
-            )
-
-        except Exception as e:
-            logger.error(f"Chat completion failed: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=500,
-                detail={"error": {"message": str(e), "type": "inference_error"}},
-            )
-
-    async def stream_chat_completion(
-        self, request: ChatCompletionRequest
-    ) -> StreamingResponse:
-        """Create streaming chat completion with SSE"""
-
-        async def generate_stream() -> AsyncGenerator[str, None]:
-            model_id = request.model
-
             # Smart routing for "auto" model
             if model_id == "auto":
-                prompt_text = "\n".join(
-                    [f"{m.role}: {m.content}" for m in request.messages]
-                )
+                prompt_text = "\n".join([f"{m.role}: {m.content}" for m in request.messages])
                 model_id, model_info = self.smart_router.select_model(prompt_text)
                 logger.info(f"Smart routing (streaming): auto -> {model_id}")
 
