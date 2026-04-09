@@ -5,16 +5,17 @@ import ModelSelector from './ModelSelector';
 import HealthDashboard from './HealthDashboard';
 import AIdeaChat from './components/AIdeaChat';
 import {
-getQueueStatus,
-pauseQueue,
-resumeQueue,
-clearFailed,
-getTasks,
-createTask,
-cancelTask,
-retryTask,
-getSettings,
-updateSettings,
+  getQueueStatus,
+  pauseQueue,
+  resumeQueue,
+  clearFailed,
+  getTasks,
+  createTask,
+  cancelTask,
+  retryTask,
+  getSettings,
+  updateSettings,
+  getSystemHealth,
 } from './api';
 
 const POLL_INTERVAL = 3000;
@@ -27,6 +28,9 @@ const [settings, setSettings] = useState({ max_ram_percent: 85, max_cpu_percent:
 const [loading, setLoading] = useState(false);
 const [activeTab, setActiveTab] = useState('tasks');
 const [recommendedModel, setRecommendedModel] = useState(null);
+const [healthStatus, setHealthStatus] = useState({ backend: 'unknown', ollama: 'unknown', nvidia_api: 'unknown' });
+
+const HEALTH_POLL_INTERVAL = 10000;
 
   useEffect(() => {
     const fetchQueue = async () => {
@@ -70,6 +74,24 @@ const [recommendedModel, setRecommendedModel] = useState(null);
       }
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const data = await getSystemHealth();
+        setHealthStatus({
+          backend: data.backend || 'unknown',
+          ollama: data.ollama || 'unknown',
+          nvidia_api: data.nvidia_api || 'unknown'
+        });
+      } catch (e) {
+        setHealthStatus({ backend: 'down', ollama: 'unknown', nvidia_api: 'unknown' });
+      }
+    };
+    fetchHealth();
+    const id = setInterval(fetchHealth, HEALTH_POLL_INTERVAL);
+    return () => clearInterval(id);
   }, []);
 
   const handlePause = async () => {
@@ -156,6 +178,22 @@ const [recommendedModel, setRecommendedModel] = useState(null);
     );
   };
 
+  const getHealthDotColor = (status) => {
+    if (status === 'healthy' || status === 'configured') return '#22c55e';
+    if (status === 'offline' || status === 'down' || status === 'error_' || status === 'invalid_format') return '#ef4444';
+    if (status === 'unknown' || status === 'missing_key') return '#eab308';
+    return '#eab308';
+  };
+
+  const getHealthStatusLabel = (service, status) => {
+    const labels = {
+      backend: { healthy: 'Backend healthy', down: 'Backend down', unknown: 'Backend unknown' },
+      ollama: { healthy: 'Ollama healthy', offline: 'Ollama offline', unknown: 'Ollama unknown' },
+      nvidia_api: { configured: 'NVIDIA configured', missing_key: 'NVIDIA key missing', invalid_format: 'NVIDIA key invalid', unknown: 'NVIDIA unknown' }
+    };
+    return labels[service]?.[status] || `${service} ${status}`;
+  };
+
   const pendingCount = tasks.filter(t => t.status === 'pending').length;
   const runningCount = tasks.filter(t => t.status === 'running').length;
   const completedCount = tasks.filter(t => t.status === 'completed').length;
@@ -179,6 +217,30 @@ OneQueue
 <div className={`status-indicator ${queue.queue_paused ? 'paused' : 'running'}`}>
 <span className="status-dot" aria-hidden="true"></span>
 <span className="status-label">{queue.queue_paused ? 'Paused' : 'Running'}</span>
+</div>
+
+<div className="health-indicators" aria-label="Service health status">
+  <div className="health-indicator" title={getHealthStatusLabel('backend', healthStatus.backend)}>
+    <span
+      className="health-dot"
+      style={{ backgroundColor: getHealthDotColor(healthStatus.backend) }}
+      aria-label={getHealthStatusLabel('backend', healthStatus.backend)}
+    />
+  </div>
+  <div className="health-indicator" title={getHealthStatusLabel('ollama', healthStatus.ollama)}>
+    <span
+      className="health-dot"
+      style={{ backgroundColor: getHealthDotColor(healthStatus.ollama) }}
+      aria-label={getHealthStatusLabel('ollama', healthStatus.ollama)}
+    />
+  </div>
+  <div className="health-indicator" title={getHealthStatusLabel('nvidia_api', healthStatus.nvidia_api)}>
+    <span
+      className="health-dot"
+      style={{ backgroundColor: getHealthDotColor(healthStatus.nvidia_api) }}
+      aria-label={getHealthStatusLabel('nvidia_api', healthStatus.nvidia_api)}
+    />
+  </div>
 </div>
             
             <div className="queue-metrics">

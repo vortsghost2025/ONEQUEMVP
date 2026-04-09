@@ -290,6 +290,28 @@ body {
   color: var(--text-primary);
 }
 
+.health-indicators {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-left: var(--spacing-3);
+  padding-left: var(--spacing-3);
+  border-left: 1px solid var(--border-secondary);
+}
+
+.health-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+
 .queue-metrics {
   display: flex;
   gap: var(--spacing-4);
