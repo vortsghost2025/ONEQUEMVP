@@ -102,6 +102,16 @@ async def lifespan(app: FastAPI):
 # FastAPI application instance
 app = FastAPI(title="OneQueue API", version="0.2.1", lifespan=lifespan)
 
+# Initialize services AFTER app is created (avoid circular import)
+from app.services.smart_router import SmartRouter
+from app.services.openai_proxy import OpenAIProxy
+
+smart_router = SmartRouter()
+openai_proxy = OpenAIProxy()
+
+# ModelBenchmark needs APIs - will be initialized lazily in router_api.py
+model_benchmark = None
+
 # CORS configuration – same origins as before
 app.add_middleware(
     CORSMiddleware,
@@ -128,7 +138,6 @@ app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
 app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
 app.include_router(router_api.router, prefix="/router", tags=["router"])
 app.include_router(ai_idea.router, prefix="/ai-idea", tags=["ai-idea"])
-app.include_router(router_api.router, tags=["openai"])
 
 
 # Exception handlers – preserve existing behaviour

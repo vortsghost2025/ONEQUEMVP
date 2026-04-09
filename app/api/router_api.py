@@ -2,16 +2,55 @@
 API endpoints for Smart Router, Benchmark, and OpenAI Proxy
 """
 
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
-import logging
 
-from app.services.smart_router import SmartRouter, TaskType
-from app.services.model_benchmark import ModelBenchmark, BENCHMARK_SUITE
-from app.services.openai_proxy import OpenAIProxy, ChatCompletionRequest
+# ✅ Clean import - app/schemas/chat.py has ZERO project dependencies
+from app.schemas.chat import (
+    ChatCompletionRequest,
+    ChatCompletionResponse,
+    ModelListResponse,
+)
 
 logger = logging.getLogger("onequeue.router_api")
+
+# Global service instances (initialized in main.py)
+_smart_router = None
+_model_benchmark = None
+_openai_proxy = None
+
+
+def get_smart_router():
+    """Get smart router instance"""
+    global _smart_router
+    if _smart_router is None:
+        from app.services.smart_router import SmartRouter
+
+        _smart_router = SmartRouter()
+    return _smart_router
+
+
+def get_model_benchmark():
+    """Get model benchmark instance"""
+    global _model_benchmark
+    if _model_benchmark is None:
+        from app.services.model_benchmark import ModelBenchmark
+
+        _model_benchmark = ModelBenchmark()
+    return _model_benchmark
+
+
+def get_openai_proxy():
+    """Get OpenAI proxy instance"""
+    global _openai_proxy
+    if _openai_proxy is None:
+        from app.services.openai_proxy import OpenAIProxy
+
+        _openai_proxy = OpenAIProxy()
+    return _openai_proxy
 
 
 # Request models
@@ -44,7 +83,8 @@ async def route_task(request: RouteRequest):
     - Model capabilities
     - Speed vs quality preferences
     """
-    from app.main import smart_router
+    smart_router = get_smart_router()
+    from app.services.smart_router import TaskType
 
     model_id, model_info = smart_router.select_model(
         prompt=request.prompt,
@@ -72,7 +112,8 @@ async def route_task(request: RouteRequest):
 @router.get("/models/recommended")
 async def get_recommended_models(task_type: Optional[str] = None, limit: int = 5):
     """Get recommended models, optionally filtered by task type"""
-    from app.main import smart_router
+    smart_router = get_smart_router()
+    from app.services.smart_router import TaskType
 
     task_enum = TaskType(task_type) if task_type else None
     models = smart_router.get_recommended_models(task_enum, limit)
@@ -96,8 +137,7 @@ async def get_recommended_models(task_type: Optional[str] = None, limit: int = 5
 @router.get("/models/{model_id}")
 async def get_model_info(model_id: str):
     """Get detailed information about a specific model"""
-    from app.main import smart_router
-
+    smart_router = get_smart_router()
     model_info = smart_router.get_model_info(model_id)
 
     if not model_info:
@@ -121,8 +161,7 @@ async def get_model_info(model_id: str):
 @router.get("/analyze")
 async def analyze_prompt(prompt: str):
     """Analyze a prompt to determine task type"""
-    from app.main import smart_router
-
+    smart_router = get_smart_router()
     task_type = smart_router.analyze_task(prompt)
     models = smart_router.list_models_by_specialty(task_type)
 
@@ -151,7 +190,9 @@ async def run_benchmark(request: BenchmarkRequest):
     - tests: List of test names (default: general_simple, code_python, creative)
     - suite: Predefined test suite (speed_test, quality_test, code_test, comprehensive)
     """
-    from app.main import benchmark_system
+    from app.services.model_benchmark import BENCHMARK_SUITE
+
+    benchmark_system = get_model_benchmark()
 
     # Use suite if specified
     if request.suite:
@@ -179,8 +220,7 @@ async def run_benchmark(request: BenchmarkRequest):
 @router.get("/benchmark/quick")
 async def quick_benchmark():
     """Run quick benchmark on key models"""
-    from app.main import benchmark_system
-
+    benchmark_system = get_model_benchmark()
     results = await benchmark_system.quick_comparison()
 
     return {"status": "completed", "results": results}
@@ -189,7 +229,7 @@ async def quick_benchmark():
 @router.get("/benchmark/results")
 async def get_benchmark_results():
     """Get all benchmark results"""
-    from app.main import benchmark_system
+    benchmark_system = get_model_benchmark()
 
     return {
         "total_results": len(benchmark_system.results),
@@ -209,8 +249,7 @@ async def get_benchmark_results():
 @router.post("/benchmark/export")
 async def export_benchmark():
     """Export benchmark results to JSON file"""
-    from app.main import benchmark_system
-
+    benchmark_system = get_model_benchmark()
     benchmark_system.export_results("data/benchmark_results.json")
 
     return {"status": "exported", "filepath": "data/benchmark_results.json"}
@@ -219,8 +258,7 @@ async def export_benchmark():
 @router.post("/benchmark/import")
 async def import_benchmark():
     """Import benchmark results from JSON file"""
-    from app.main import benchmark_system
-
+    benchmark_system = get_model_benchmark()
     benchmark_system.import_results("data/benchmark_results.json")
 
     return {"status": "imported", "total_results": len(benchmark_system.results)}
@@ -238,7 +276,7 @@ async def openai_chat_completions(request: ChatCompletionRequest):
     - NVIDIA and Ollama models
     - Streaming (SSE)
     """
-    from app.main import openai_proxy
+    openai_proxy = get_openai_proxy()
 
     if request.stream:
         return await openai_proxy.stream_chat_completion(request)
@@ -249,16 +287,14 @@ async def openai_chat_completions(request: ChatCompletionRequest):
 @router.get("/v1/models")
 async def openai_list_models():
     """OpenAI-compatible models list"""
-    from app.main import openai_proxy
-
+    openai_proxy = get_openai_proxy()
     return openai_proxy.list_models()
 
 
 @router.get("/v1/models/{model_id}")
 async def openai_get_model(model_id: str):
     """OpenAI-compatible model info"""
-    from app.main import openai_proxy
-
+    openai_proxy = get_openai_proxy()
     return openai_proxy.get_model(model_id)
 
 
@@ -266,8 +302,7 @@ async def openai_get_model(model_id: str):
 @router.get("/fallback/{model_id}")
 async def get_fallback_chain(model_id: str):
     """Get fallback chain for a model"""
-    from app.main import smart_router
-
+    smart_router = get_smart_router()
     chain = smart_router.get_fallback_chain(model_id)
 
     return {
@@ -289,7 +324,7 @@ async def get_fallback_chain(model_id: str):
 @router.post("/generate/fallback")
 async def generate_with_fallback(request: RouteRequest):
     """Generate with automatic fallback on failure"""
-    from app.main import smart_router, nvidia_api, ollama_api
+    smart_router = get_smart_router()
 
     model_id, _ = smart_router.select_model(request.prompt, request.preferred_model)
     fallback_chain = smart_router.get_fallback_chain(model_id)
@@ -298,8 +333,11 @@ async def generate_with_fallback(request: RouteRequest):
 
     for attempt_model in fallback_chain:
         try:
+            # Import APIs dynamically to avoid circular dependency
             if smart_router._is_nvidia_model(attempt_model):
-                response = await nvidia_api.generate(
+                from app.api import nvidia as nvidia_router
+
+                response = await nvidia_router.generate(
                     model=attempt_model, prompt=request.prompt, max_tokens=2048
                 )
                 content = (
@@ -308,7 +346,9 @@ async def generate_with_fallback(request: RouteRequest):
                     .get("content", "")
                 )
             else:
-                content = await ollama_api.generate(
+                from app.services import ollama
+
+                content = await ollama.generate(
                     prompt=request.prompt, model=attempt_model, timeout=120
                 )
 
