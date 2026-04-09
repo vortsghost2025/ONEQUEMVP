@@ -78,7 +78,25 @@ async def lifespan(app: FastAPI):
 
 
 # FastAPI instance
-app = FastAPI(title="OneQueue API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="OneQueue API", version="0.2.0", lifespan=lifespan)
+
+# Initialize services
+from app.services.smart_router import SmartRouter
+from app.services.nvidia_api import NvidiaAPI
+from app.services.ollama import OllamaClient
+from app.services.model_benchmark import ModelBenchmark
+from app.services.openai_proxy import OpenAIProxy
+
+# Global service instances
+smart_router = SmartRouter()
+nvidia_api = NvidiaAPI()
+ollama_api = OllamaClient()
+benchmark_system = ModelBenchmark(nvidia_api, ollama_api)
+openai_proxy = OpenAIProxy(nvidia_api, ollama_api, smart_router)
+
+logger.info("Smart Router initialized with 13 models")
+logger.info("Benchmark system ready")
+logger.info("OpenAI-compatible proxy enabled")
 
 # Enable CORS for frontend development
 app.add_middleware(
@@ -106,6 +124,12 @@ app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
 from app.api import nvidia as nvidia_router
 
 app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
+
+# Smart Router and OpenAI-compatible endpoints
+from app.api import router_api
+
+app.include_router(router_api.router, prefix="/router", tags=["router"])
+app.include_router(router_api.router, tags=["openai"])  # OpenAI-compatible at root /v1/
 
 
 # Exception handlers
