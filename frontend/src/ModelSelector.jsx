@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllModels, getSmartRoute } from './api';
+import { getAllModels, getSmartRoute, getOllamaModels, getNvidiaModels } from './api';
 
 // Top 10 recommended models from benchmark tests
 const TOP_MODELS = [
@@ -16,6 +16,18 @@ const TOP_MODELS = [
 ];
 
 const TOP_MODEL_IDS = TOP_MODELS.map(m => m.id);
+
+// Fallback Ollama models in case API fails
+const OLLAMA_MODELS = [
+  { id: "llama3:latest", name: "Llama 3 (Latest)", owned_by: "local" },
+  { id: "llama3.1:latest", name: "Llama 3.1 (Latest)", owned_by: "local" },
+  { id: "llama3.1:8b", name: "Llama 3.1 8B", owned_by: "local" },
+  { id: "mistral:latest", name: "Mistral", owned_by: "local" },
+  { id: "mixtral:latest", name: "Mixtral 8x7B", owned_by: "local" },
+  { id: "phi3:latest", name: "Phi-3", owned_by: "local" },
+  { id: "qwen2:latest", name: "Qwen 2", owned_by: "local" },
+  { id: "codellama:latest", name: "CodeLlama", owned_by: "local" },
+];
 
 export default function ModelSelector({
   value,
@@ -42,11 +54,33 @@ export default function ModelSelector({
   const fetchModels = async () => {
     try {
       setLoading(true);
-      const data = await getAllModels();
+      
+      // Fetch from both sources
+      const [ollamaData, nvidiaData] = await Promise.all([
+        getOllamaModels(),
+        getNvidiaModels()
+      ]);
 
-      // Group models by provider
-      const nvidiaModels = data.data.filter(m => m.id.includes('/') && m.owned_by !== 'local');
-      const ollamaModels = data.data.filter(m => m.owned_by === 'local' || !m.id.includes('/'));
+      // Process Ollama models (local)
+      const ollamaModels = Array.isArray(ollamaData.models) 
+        ? ollamaData.models.map(m => ({
+            id: m.id,
+            name: m.name || m.id,
+            owned_by: 'local'
+          }))
+        : OLLAMA_MODELS.map(m => ({ id: m.id, name: m.name, owned_by: 'local' }));
+
+      // Process NVIDIA models (cloud) from /nvidia/models or /v1/models
+      let nvidiaModels = [];
+      if (nvidiaData.data) {
+        nvidiaModels = nvidiaData.data.filter(m => m.id.includes('/') && m.owned_by !== 'local');
+      } else if (nvidiaData.models) {
+        nvidiaModels = nvidiaData.models.map(m => ({
+          id: m.id || m.model,
+          name: m.name || m.model,
+          owned_by: 'nvidia'
+        }));
+      }
 
       // Separate top recommended models from others
       const topRecommended = nvidiaModels.filter(m => TOP_MODEL_IDS.includes(m.id));
@@ -58,7 +92,8 @@ export default function ModelSelector({
           nvidiaModels.some(nm => nm.id === tm.id)
         ) },
         { group: 'Other NVIDIA Models', models: otherModels.slice(0, 15) },
-        { group: 'Ollama Local', models: ollamaModels }
+        { group: 'Local (Ollama)', models: ollamaModels },
+        { group: 'Cloud (NVIDIA)', models: nvidiaModels.slice(0, 20) }
       ]);
     } catch (err) {
       setError('Failed to load models: ' + err.message);

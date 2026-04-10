@@ -55,6 +55,32 @@ export async function retryTask(id) {
   return handleResponse(await fetch(BASE_URL + '/tasks/' + id + '/retry', { method: 'POST' }));
 }
 
+// Ollama API
+const OLLAMA_MODELS = [
+  { id: "llama3:latest", name: "Llama 3 (Latest)", size: "~4.9GB" },
+  { id: "llama3.1:latest", name: "Llama 3.1 (Latest)", size: "~4.9GB" },
+  { id: "llama3.1:8b", name: "Llama 3.1 8B", size: "~4.9GB" },
+  { id: "llama3.1:70b", name: "Llama 3.1 70B", size: "~42GB" },
+  { id: "mistral:latest", name: "Mistral", size: "~4.1GB" },
+  { id: "mixtral:latest", name: "Mixtral 8x7B", size: "~26GB" },
+  { id: "phi3:latest", name: "Phi-3", size: "~2.3GB" },
+  { id: "qwen2:latest", name: "Qwen 2", size: "~4.4GB" },
+  { id: "codellama:latest", name: "CodeLlama", size: "~3.8GB" },
+  { id: "deepseek-coder:latest", name: "DeepSeek Coder", size: "~3.8GB" },
+];
+
+export async function getOllamaModels() {
+  try {
+    const response = await fetch(BASE_URL + '/ollama/models');
+    if (response.ok) {
+      return handleResponse(response);
+    }
+  } catch (e) {
+    console.log('Ollama endpoint not available, using hardcoded models');
+  }
+  return { models: OLLAMA_MODELS };
+}
+
 // NVIDIA API
 export async function getNvidiaModels() {
   return handleResponse(await fetch(BASE_URL + '/nvidia/models'));
