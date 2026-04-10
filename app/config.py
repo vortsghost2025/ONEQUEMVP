@@ -3,10 +3,14 @@ from pydantic_settings import BaseSettings
 
 class AppSettings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_GPU_URL: str = (
+        ""  # Remote GPU via Tailscale (e.g., http://100.95.92.117:11434)
+    )
     DATABASE_URL: str = "sqlite:///./data/onequeue.db"
     LOG_LEVEL: str = "INFO"
     POLLING_INTERVAL_SECONDS: float = 1.0
     NVIDIA_API_KEY: str = ""
+    PREFER_LOCAL_GPU: bool = True  # Route to local GPU when available
 
     class Config:
         env_file = ".env"

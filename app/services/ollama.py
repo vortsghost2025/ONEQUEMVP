@@ -12,6 +12,7 @@ class OllamaClient:
     """Thin async wrapper around the Ollama HTTP API.
 
     The client uses the ``OLLAMA_BASE_URL`` from the bootstrap config.
+    Supports routing to local GPU (via Tailscale) when PREFER_LOCAL_GPU is True.
     It provides two convenience methods used by the queue worker:
     * ``check_health`` – verifies that the Ollama server is reachable.
     * ``generate`` – sends a prompt to a model and returns the generated text.
@@ -20,6 +21,10 @@ class OllamaClient:
     def __init__(self) -> None:
         # Ensure we always have a trailing slash‑less URL for consistent concatenation
         self.base_url = settings.OLLAMA_BASE_URL.rstrip("/")
+        self.gpu_url = (
+            settings.OLLAMA_GPU_URL.rstrip("/") if settings.OLLAMA_GPU_URL else None
+        )
+        self.prefer_gpu = settings.PREFER_LOCAL_GPU
 
     async def check_health(self) -> bool:
         """Ping the Ollama ``/api/tags`` endpoint.
@@ -34,6 +39,24 @@ class OllamaClient:
                 return resp.status_code == 200
         except Exception:
             return False
+
+    async def check_gpu_health(self) -> bool:
+        """Check if GPU backend (via Tailscale) is available."""
+        if not self.gpu_url:
+            return False
+        url = f"{self.gpu_url}/api/tags"
+        try:
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                resp = await client.get(url)
+                return resp.status_code == 200
+        except Exception:
+            return False
+
+    def get_backend_url(self, prefer_gpu: bool = True) -> str:
+        """Return the appropriate backend URL based on preference."""
+        if prefer_gpu and self.gpu_url:
+            return self.gpu_url
+        return self.base_url
 
     async def generate(self, prompt: str, model: str, timeout: int) -> str:
         """Generate text from Ollama.
@@ -58,7 +81,9 @@ class OllamaClient:
         OllamaError
             If the API returns a non‑200 status or includes an ``error`` field.
         """
-        url = f"{self.base_url}/api/generate"
+        # Use GPU backend if available and preferred
+        backend_url = self.get_backend_url(self.prefer_gpu)
+        url = f"{backend_url}/api/generate"
         payload = {"model": model, "prompt": prompt, "stream": False}
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
@@ -121,3 +146,15 @@ async def check_health() -> bool:
         True if Ollama is reachable, False otherwise
     """
     return await _client.check_health()
+
+
+async def check_gpu_health() -> bool:
+    """
+    Module-level wrapper for OllamaClient.check_gpu_health().
+
+    Returns:
+    --------
+    bool
+        True if GPU backend is reachable, False otherwise
+    """
+    return await _client.check_gpu_health()
