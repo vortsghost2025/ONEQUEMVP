@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class AppSettings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_GPU_URL: str = (
-        ""  # Remote GPU via Tailscale (e.g., http://100.95.92.117:11434)
+        "http://100.95.92.117:9001"  # Local PC via Tailscale (your RTX 5060)
     )
     DATABASE_URL: str = "sqlite:///./data/onequeue.db"
     LOG_LEVEL: str = "INFO"
