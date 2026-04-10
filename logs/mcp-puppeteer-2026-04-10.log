@@ -1,0 +1,70 @@
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 07:54:38.016"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 07:54:38.017"}
+{"arguments":{"url":"http://187.77.3.56:8081/ui/"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:01.161","tool":"puppeteer_navigate"}
+{"0":"n","1":"p","2":"x","level":"info","message":"Launching browser with config:","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:01.165"}
+{"level":"info","message":"Browser launched successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:02.128"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:02.129","url":"http://187.77.3.56:8081/ui/"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-10 09:07:03.048","url":"http://187.77.3.56:8081/ui/"}
+{"arguments":{"height":800,"name":"onequeue-ui","width":1280},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:35.347","tool":"puppeteer_screenshot"}
+{"arguments":{"script":"document.body.innerText"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:57.941","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":23,"service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:57.942"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-10 09:07:57.950"}
+{"arguments":{"script":"document.documentElement.outerHTML"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:08:27.194","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":34,"service":"mcp-puppeteer","timestamp":"2026-04-10 09:08:27.194"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-10 09:08:27.196"}
+{"arguments":{"url":"http://187.77.3.56:8081/docs"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:13:45.025","tool":"puppeteer_navigate"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-10 09:13:45.026","url":"http://187.77.3.56:8081/docs"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-10 09:13:46.538","url":"http://187.77.3.56:8081/docs"}
+{"arguments":{"height":900,"name":"swagger-ui","width":1280},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:14:11.949","tool":"puppeteer_screenshot"}
+{"arguments":{"url":"http://187.77.3.56:8081/ui/"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:22:24.686","tool":"puppeteer_navigate"}
+{"level":"info","message":"Navigating to URL","service":"mcp-puppeteer","timestamp":"2026-04-10 09:22:24.687","url":"http://187.77.3.56:8081/ui/"}
+{"level":"info","message":"Navigation successful","service":"mcp-puppeteer","status":200,"timestamp":"2026-04-10 09:22:26.919","url":"http://187.77.3.56:8081/ui/"}
+{"arguments":{"script":"document.readyState"},"level":"debug","message":"Tool call received","service":"mcp-puppeteer","timestamp":"2026-04-10 09:23:02.380","tool":"puppeteer_evaluate"}
+{"level":"debug","message":"Executing script in browser","scriptLength":19,"service":"mcp-puppeteer","timestamp":"2026-04-10 09:23:02.380"}
+{"hasResult":false,"level":"debug","logCount":0,"message":"Script execution result","resultType":"undefined","service":"mcp-puppeteer","timestamp":"2026-04-10 09:23:02.381"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 09:57:14.045"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 09:57:21.780"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 09:57:21.782"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:06:03.865"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:06:11.109"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:06:11.111"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:06:14.441"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:06:21.496"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:06:21.497"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:11:15.961"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:11:23.070"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:11:23.073"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:12:39.626"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:12:46.466"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:12:46.469"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:13:07.422"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:13:14.589"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:13:14.591"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:15:26.017"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:15:33.344"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:15:33.346"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:16:09.918"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:16:16.855"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:16:16.858"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:24:21.333"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:24:21.334"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:24:32.418"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:24:39.228"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:24:39.230"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:25:32.536"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:25:38.988"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:25:38.991"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:31:49.885"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:31:49.886"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 10:51:20.504"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 10:51:28.639"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 10:51:28.640"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 11:01:14.687"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 11:01:22.289"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 11:01:22.290"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 11:05:53.390"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 11:05:56.973"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 11:05:56.975"}
+{"level":"info","message":"Puppeteer MCP Server closing","service":"mcp-puppeteer","timestamp":"2026-04-10 11:08:21.240"}
+{"level":"info","message":"Starting MCP server","service":"mcp-puppeteer","timestamp":"2026-04-10 11:08:24.748"}
+{"level":"info","message":"MCP server started successfully","service":"mcp-puppeteer","timestamp":"2026-04-10 11:08:24.749"}

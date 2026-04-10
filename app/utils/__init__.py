@@ -11,11 +11,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create database engine
+# Create database engine with connection pooling
 engine = create_engine(
     settings.DATABASE_URL,
     echo=False,
     connect_args={"check_same_thread": False},  # SQLite specific
+    pool_size=10,  # Base connections
+    max_overflow=20,  # Additional connections under load
+    pool_pre_ping=True,  # Verify connections
+    pool_recycle=1800,  # Recycle after 30 min
 )
 
 

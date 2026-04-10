@@ -1,14 +1,106 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-    <script type="module" crossorigin src="/assets/index-D2Pn6q6f.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BGwWWF7Q.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OneQueue - AI Model Router</title>
+  <link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>OneQueue</h1>
+      <p class="subtitle">Intelligent AI Model Router</p>
+    </header>
+
+    <main>
+      <section class="status-section">
+        <div class="card">
+          <h2>System Status</h2>
+          <div id="system-status">
+            <span class="status-indicator" id="status-dot"></span>
+            <span id="status-text">Loading...</span>
+          </div>
+          <div class="stats" id="stats"></div>
+        </div>
+      </section>
+
+      <section class="models-section">
+        <div class="card">
+          <h2>Available Models</h2>
+          <div class="model-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="nvidia">NVIDIA</button>
+            <button class="filter-btn" data-filter="ollama">Ollama</button>
+          </div>
+          <ul id="model-list" class="model-list"></ul>
+        </div>
+      </section>
+
+      <section class="chat-section">
+        <div class="card">
+          <h2>Quick Chat</h2>
+          <form id="chat-form">
+            <div class="form-group">
+              <label for="chat-model">Model:</label>
+              <select id="chat-model" required></select>
+            </div>
+            <div class="form-group">
+              <label for="chat-prompt">Message:</label>
+              <textarea id="chat-prompt" rows="3" placeholder="Enter your message..." required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Send</button>
+          </form>
+          <div id="chat-response" class="response-area"></div>
+        </div>
+      </section>
+
+      <section class="tasks-section">
+        <div class="card">
+          <h2>Task Queue</h2>
+          <form id="task-form">
+            <div class="form-group">
+              <label for="task-model">Model:</label>
+              <select id="task-model" required></select>
+            </div>
+            <div class="form-group">
+              <label for="task-prompt">Prompt:</label>
+              <textarea id="task-prompt" rows="2" placeholder="Enter task prompt..." required></textarea>
+            </div>
+            <button type="submit" class="btn-secondary">Create Task</button>
+          </form>
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Model</th>
+                <th>Status</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="task-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="queue-section">
+        <div class="card">
+          <h2>Queue Control</h2>
+          <div class="queue-controls">
+            <button id="btn-pause" class="btn-warning">Pause</button>
+            <button id="btn-resume" class="btn-success">Resume</button>
+            <button id="btn-clear" class="btn-danger">Clear Failed</button>
+          </div>
+          <div id="queue-status" class="queue-status"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>OneQueue v1.0 | Powered by NVIDIA API & Ollama</p>
+    </footer>
+  </div>
+
+  <script src="/ui/main.js"></script>
+</body>
 </html>

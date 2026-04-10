@@ -1,0 +1,28 @@
+{
+  "model": "phi3",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is the weather in New York? Use the get_weather function."
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get weather information for a location",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "City name"
+            }
+          },
+          "required": ["location"]
+        }
+      }
+    }
+  ]
+}
