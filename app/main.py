@@ -2,9 +2,10 @@ import logging
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel, create_engine, Session
+from fastapi.responses import JSONResponse
+from sqlmodel import SQLModel, create_engine, Session, text, select
 from app.config import settings
 
 
@@ -18,7 +19,6 @@ engine = create_engine(settings.DATABASE_URL, echo=False)
 
 # Dependency for DB sessions
 from typing import Generator
-from sqlmodel import select
 from app.models import Task, Settings, TaskStatus
 
 
@@ -27,13 +27,28 @@ def get_session() -> Generator[Session, None, None]:
         yield session
 
 
-# Import routers after get_session is defined to avoid circular imports
+# Import routers after get_session is defined
 from app.api import tasks, settings as settings_router
+from app.api import queue as queue_router
+from app.api import nvidia as nvidia_router
+from app.api import router_api as smart_router_router
+from app.api import ai_idea
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
+    # Pre-flight checklist
+    from app.services.preflight import run_preflight_checklist
+
+    logger.info("Running pre-flight checklist...")
+    if not await run_preflight_checklist():
+        logger.error("Pre-flight failed")
+        import sys
+        sys.exit(1)
+
+    logger.info("Pre-flight passed")
+    
     # Create all tables
     SQLModel.metadata.create_all(engine)
     logger.info("Database tables created (if not existing)")
@@ -66,9 +81,20 @@ async def lifespan(app: FastAPI):
     worker_task = asyncio.create_task(_worker.worker_loop())
     logger.info("Background worker started")
 
+    # Start service monitor
+    from app.services.service_monitor import start_service_monitoring
+    await start_service_monitoring(interval_seconds=60)
+    logger.info("Service monitor started")
+
+    # Integrate graceful shutdown
+    from app.services.graceful_shutdown import integrate_with_fastapi
+    integrate_with_fastapi(app)
+
     yield  # Application runs here
 
     # Shutdown: cancel the worker task
+    from app.services.service_monitor import stop_service_monitoring
+    stop_service_monitoring()
     worker_task.cancel()
     try:
         await worker_task
@@ -77,14 +103,28 @@ async def lifespan(app: FastAPI):
 
 
 # FastAPI instance
-app = FastAPI(title="OneQueue API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="OneQueue API", version="0.2.1", lifespan=lifespan)
+
+# Initialize services AFTER app is created (avoid circular import)
+from app.services.smart_router import SmartRouter
+from app.services.openai_proxy import OpenAIProxy
+
+smart_router = SmartRouter()
+openai_proxy = OpenAIProxy()
 
 # Enable CORS for frontend development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://[::1]:5173",
+        "http://[::1]:5174",
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://[::1]:8081",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
     ],
@@ -96,9 +136,22 @@ app.add_middleware(
 # Include routers (they will import get_session from this module)
 app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 app.include_router(settings_router.router, prefix="/settings", tags=["settings"])
-from app.api import queue as queue_router
-
 app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
+app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
+app.include_router(smart_router_router.router, prefix="/router", tags=["router"])
+app.include_router(ai_idea.router, prefix="/ai-idea", tags=["ai-idea"])
+
+# Exception handlers
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.warning(f"HTTP {exc.status_code}: {exc.detail}")
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/health")

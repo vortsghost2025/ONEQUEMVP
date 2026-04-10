@@ -10,6 +10,7 @@ services:
     volumes:
       - ./data:/app/data
     environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
       - OLLAMA_BASE_URL=http://ollama:11434
       - DATABASE_URL=sqlite:///./data/onequeue.db
       - LOG_LEVEL=INFO
