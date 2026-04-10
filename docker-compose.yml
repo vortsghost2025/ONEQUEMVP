@@ -1,21 +1,80 @@
 version: '3.9'
 
 services:
-  onequeue:
-    build: .
-    container_name: onequeue
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: onequeue-api
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      - "8000:8000"
     environment:
       - NVIDIA_API_KEY=${NVIDIA_API_KEY}
       - OLLAMA_BASE_URL=http://ollama:11434
       - POLLING_INTERVAL_SECONDS=1
-      - DATABASE_URL=sqlite:////app/onequeue.db
+      - DATABASE_URL=sqlite:////app/data/onequeue.db
     volumes:
       - onequeue-data:/app/data
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
+    networks:
+      - onequeue-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+    container_name: onequeue-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - onequeue-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: onequeue-worker
+    restart: unless-stopped
+    command:
+      - python
+      - -c
+      - |
+        import asyncio
+        import sys
+        sys.path.insert(0, '/app')
+        from app.utils import engine
+        from app import worker as _worker
+        from sqlmodel import text
+        asyncio.run(_worker.worker_loop())
+    environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - POLLING_INTERVAL_SECONDS=1
+      - DATABASE_URL=sqlite:////app/data/onequeue.db
+    volumes:
+      - onequeue-data:/app/data
+    depends_on:
+      - api
     networks:
       - onequeue-network
 
@@ -29,6 +88,12 @@ services:
       - ollama-data:/root/.ollama
     networks:
       - onequeue-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   onequeue-data:
