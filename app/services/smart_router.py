@@ -4,10 +4,15 @@ Intelligently selects the best model based on task requirements
 """
 
 import re
+import asyncio
+import httpx
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
+from datetime import datetime, timedelta
 import logging
+
+from app.config import settings
 
 logger = logging.getLogger("onequeue.router")
 
@@ -47,6 +52,16 @@ class SmartRouter:
     def __init__(self):
         self.models = self._initialize_model_registry()
         self.benchmarks: Dict[str, Dict] = {}
+        
+        # Model auto-detection
+        self._available_ollama_models: List[str] = []
+        self._available_nvidia_models: List[str] = []
+        self._detection_cache_ttl = timedelta(seconds=60)
+        self._last_detection: Optional[datetime] = None
+        
+        # NVIDIA API settings
+        self._nvidia_url = "https://integrate.api.nvidia.com/v1"
+        self._nvidia_api_key = settings.NVIDIA_API_KEY
 
     def _is_nvidia_model(self, model_id: str) -> bool:
         """Check if model is from NVIDIA"""
@@ -273,6 +288,116 @@ class SmartRouter:
 
         return models
 
+    async def detect_available_models(self, force_refresh: bool = False) -> Dict[str, List[str]]:
+        """
+        Detect available models from Ollama and NVIDIA API.
+        
+        Returns:
+            {
+                "ollama": ["llama3:latest", "codellama:7b", ...],
+                "nvidia": ["meta/llama-4-maverick-17b-128e-instruct", ...],
+                "all": [... all available model IDs ...]
+            }
+        """
+        # Check cache validity
+        if not force_refresh and self._last_detection:
+            if datetime.utcnow() - self._last_detection < self._detection_cache_ttl:
+                return {
+                    "ollama": self._available_ollama_models,
+                    "nvidia": self._available_nvidia_models,
+                    "all": self._available_ollama_models + self._available_nvidia_models,
+                }
+
+        ollama_models = []
+        nvidia_models = []
+
+        # Detect Ollama models
+        ollama_models = await self._detect_ollama_models()
+        
+        # Detect NVIDIA models (if API key available)
+        if self._nvidia_api_key and self._nvidia_api_key.startswith("nvapi-"):
+            nvidia_models = await self._detect_nvidia_models()
+
+        # Update cache
+        self._available_ollama_models = ollama_models
+        self._available_nvidia_models = nvidia_models
+        self._last_detection = datetime.utcnow()
+
+        logger.info(f"Model detection: {len(ollama_models)} Ollama, {len(nvidia_models)} NVIDIA")
+
+        return {
+            "ollama": ollama_models,
+            "nvidia": nvidia_models,
+            "all": ollama_models + nvidia_models,
+        }
+
+    async def _detect_ollama_models(self) -> List[str]:
+        """Query local Ollama for available models"""
+        models = []
+        
+        # Try primary URL
+        ollama_urls = [settings.OLLAMA_BASE_URL]
+        if settings.OLLAMA_GPU_URL:
+            ollama_urls.append(settings.OLLAMA_GPU_URL)
+
+        for url in ollama_urls:
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.get(f"{url}/api/tags", timeout=3.0)
+                    if response.status_code == 200:
+                        data = response.json()
+                        models = [m.get("name", "") for m in data.get("models", []) if m.get("name")]
+                        logger.info(f"Ollama at {url}: {len(models)} models")
+                        break
+            except Exception as e:
+                logger.debug(f"Ollama not available at {url}: {e}")
+                continue
+
+        return models
+
+    async def _detect_nvidia_models(self) -> List[str]:
+        """Query NVIDIA API for available models"""
+        models = []
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self._nvidia_url}/models",
+                    headers={"Authorization": f"Bearer {self._nvidia_api_key}"},
+                    timeout=5.0,
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    # Extract model IDs from the response
+                    for model in data.get("data", []):
+                        model_id = model.get("id", "")
+                        if model_id:
+                            models.append(model_id)
+                    logger.info(f"NVIDIA API: {len(models)} models available")
+        except Exception as e:
+            logger.debug(f"NVIDIA API error: {e}")
+
+        return models
+
+    def get_available_models_sync(self) -> Dict[str, List[str]]:
+        """
+        Synchronous version - returns cached available models.
+        Returns empty dict if detection hasn't run yet.
+        """
+        if not self._last_detection:
+            return {"ollama": [], "nvidia": [], "all": []}
+        
+        return {
+            "ollama": self._available_ollama_models,
+            "nvidia": self._available_nvidia_models,
+            "all": self._available_ollama_models + self._available_nvidia_models,
+        }
+
+    def is_model_available(self, model_id: str) -> bool:
+        """Check if a specific model is currently available"""
+        available = self.get_available_models_sync()
+        return model_id in available["all"]
+
     def analyze_task(self, prompt: str, context_length: int = 0) -> TaskType:
         """Analyze task to determine best model type"""
         prompt_lower = prompt.lower()
@@ -401,7 +526,7 @@ class SmartRouter:
         Returns: (model_id, model_info)
         """
 
-        # 1. If user explicitly requested a model, use it (if available)
+        # 1. If user explicitly requested a model, use it (if available in registry)
         if preferred_model and preferred_model in self.models:
             logger.info(f"Using user-specified model: {preferred_model}")
             return preferred_model, self.models[preferred_model]
@@ -410,7 +535,11 @@ class SmartRouter:
         task_type = self.analyze_task(prompt, max_context)
         logger.info(f"Detected task type: {task_type.value}")
 
-        # 3. Filter models by requirements
+        # 3. Get available models (cached)
+        available = self.get_available_models_sync()
+        available_set = set(available["all"])
+        
+        # 4. Filter models by requirements + availability
         candidates = []
         for model_id, model in self.models.items():
             # Skip if requires local but model is cloud
@@ -419,6 +548,11 @@ class SmartRouter:
 
             # Skip if context too small
             if model.context_length < max_context:
+                continue
+
+            # Skip if model is not in available set (auto-detection)
+            # But allow if no detection has run yet (backwards compatibility)
+            if available["all"] and model_id not in available_set:
                 continue
 
             # Score the model
@@ -457,7 +591,8 @@ class SmartRouter:
 
     def get_fallback_chain(self, primary_model: str) -> List[str]:
         """
-        Generate optimized fallback chain based on benchmark results
+        Generate optimized fallback chain based on benchmark results.
+        Filters to only include available models.
 
         Example: Llama 4 Maverick → Llama 3.1 70B → Phi-3 Mini
         """
@@ -466,6 +601,11 @@ class SmartRouter:
 
         model = self.models[primary_model]
         chain = [primary_model]
+
+        # Get available models
+        available = self.get_available_models_sync()
+        available_set = set(available["all"])
+        has_detected = bool(available["all"])
 
         # Code-specific chain (fastest coders first)
         if TaskType.CODE in model.specialty:
@@ -502,6 +642,14 @@ class SmartRouter:
             if model_id not in seen:
                 seen.add(model_id)
                 unique_chain.append(model_id)
+
+        # Filter by available models if detection has run
+        if has_detected:
+            filtered_chain = [m for m in unique_chain if m in available_set]
+            # If no models available in chain, try any available model
+            if not filtered_chain:
+                filtered_chain = list(available_set)
+            return filtered_chain if filtered_chain else unique_chain
 
         return unique_chain
 
