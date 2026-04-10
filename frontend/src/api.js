@@ -128,3 +128,8 @@ export async function openaiChat(messages, model = 'auto', options = {}) {
 export async function getSystemHealth() {
   return handleResponse(await fetch(BASE_URL + '/queue/health'));
 }
+
+// Ollama API
+export async function getOllamaModels() {
+  return handleResponse(await fetch(BASE_URL + '/ollama/models'));
+}

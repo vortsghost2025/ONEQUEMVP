@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllModels, getSmartRoute } from './api';
+import { getAllModels, getSmartRoute, getOllamaModels, getNvidiaModels } from './api';
 
 // Top 10 recommended models from benchmark tests
 const TOP_MODELS = [
@@ -42,23 +42,56 @@ export default function ModelSelector({
   const fetchModels = async () => {
     try {
       setLoading(true);
-      const data = await getAllModels();
-
-      // Group models by provider
-      const nvidiaModels = data.data.filter(m => m.id.includes('/') && m.owned_by !== 'local');
-      const ollamaModels = data.data.filter(m => m.owned_by === 'local' || !m.id.includes('/'));
+      
+      // Fetch from both endpoints
+      let ollamaModels = [];
+      let nvidiaModelsList = [];
+      
+      try {
+        const ollamaData = await getOllamaModels();
+        ollamaModels = (ollamaData.models || []).map(name => ({
+          id: name,
+          name: name.split(':')[0],
+          owned_by: 'local'
+        }));
+      } catch (e) {
+        console.warn('Failed to fetch Ollama models:', e);
+        // Fallback to common Ollama models
+        ollamaModels = [
+          { id: 'llama3:latest', name: 'llama3:latest', owned_by: 'local' },
+          { id: 'llama3.1:latest', name: 'llama3.1:latest', owned_by: 'local' },
+          { id: 'mistral:latest', name: 'mistral:latest', owned_by: 'local' },
+        ];
+      }
+      
+      try {
+        const nvidiaData = await getNvidiaModels();
+        nvidiaModelsList = (nvidiaData.models || []).map(name => ({
+          id: name,
+          name: name.split('/').pop(),
+          owned_by: 'nvidia'
+        }));
+      } catch (e) {
+        console.warn('Failed to fetch NVIDIA models:', e);
+        // Fallback to common NVIDIA models
+        nvidiaModelsList = [
+          { id: 'meta/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick', owned_by: 'nvidia' },
+          { id: 'deepseek-ai/deepseek-v3.2', name: 'DeepSeek V3.2', owned_by: 'nvidia' },
+          { id: 'nvidia/llama-3.3-nemotron-super-49b-v1.5', name: 'Llama 3.3 Nemotron', owned_by: 'nvidia' },
+        ];
+      }
 
       // Separate top recommended models from others
-      const topRecommended = nvidiaModels.filter(m => TOP_MODEL_IDS.includes(m.id));
-      const otherModels = nvidiaModels.filter(m => !TOP_MODEL_IDS.includes(m.id));
+      const topRecommended = nvidiaModelsList.filter(m => TOP_MODEL_IDS.includes(m.id));
+      const otherModels = nvidiaModelsList.filter(m => !TOP_MODEL_IDS.includes(m.id));
 
       setModels([
         { group: 'Smart Routing', models: [{ id: 'auto', name: 'Auto-select best model', tier: 'smart' }] },
         { group: '⭐ Top Recommended (Tested & Optimized)', models: TOP_MODELS.filter(tm => 
-          nvidiaModels.some(nm => nm.id === tm.id)
+          nvidiaModelsList.some(nm => nm.id === tm.id)
         ) },
-        { group: 'Other NVIDIA Models', models: otherModels.slice(0, 15) },
-        { group: 'Ollama Local', models: ollamaModels }
+        { group: 'Cloud (NVIDIA)', models: otherModels.slice(0, 15) },
+        { group: 'Local (Ollama)', models: ollamaModels }
       ]);
     } catch (err) {
       setError('Failed to load models: ' + err.message);
