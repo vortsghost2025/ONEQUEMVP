@@ -26,6 +26,13 @@ class OllamaClient:
         )
         self.prefer_gpu = settings.PREFER_LOCAL_GPU
 
+    @staticmethod
+    def _normalize_model_name(model: str) -> str:
+        """Add :latest suffix to model name if missing."""
+        if model and ":" not in model:
+            return f"{model}:latest"
+        return model
+
     async def check_health(self) -> bool:
         """Ping the Ollama ``/api/tags`` endpoint.
 
@@ -81,10 +88,10 @@ class OllamaClient:
         OllamaError
             If the API returns a non‑200 status or includes an ``error`` field.
         """
-        # Use GPU backend if available and preferred
+        normalized_model = self._normalize_model_name(model)
         backend_url = self.get_backend_url(self.prefer_gpu)
         url = f"{backend_url}/api/generate"
-        payload = {"model": model, "prompt": prompt, "stream": False}
+        payload = {"model": normalized_model, "prompt": prompt, "stream": False}
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 resp = await client.post(url, json=payload)
@@ -111,6 +118,13 @@ class OllamaClient:
 _client = OllamaClient()
 
 
+def _normalize_model_name(model: str) -> str:
+    """Add :latest suffix to model name if missing."""
+    if model and ":" not in model:
+        return f"{model}:latest"
+    return model
+
+
 async def generate(prompt: str, model: str, timeout: int = 120) -> str:
     """
     Module-level wrapper for OllamaClient.generate().
@@ -131,7 +145,8 @@ async def generate(prompt: str, model: str, timeout: int = 120) -> str:
     str
         The generated response text
     """
-    return await _client.generate(prompt, model, timeout)
+    normalized_model = _normalize_model_name(model)
+    return await _client.generate(prompt, normalized_model, timeout)
 
 
 async def check_health() -> bool:
