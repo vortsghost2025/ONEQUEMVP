@@ -3,10 +3,12 @@ from sqlmodel import Session, select
 from typing import Dict
 import httpx
 import os
+import logging
 
 from app.models import Settings, Task
 from app.utils import get_session, logger
 
+logger = logging.getLogger("onequeue")
 router = APIRouter()
 
 
