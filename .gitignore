@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+.coverage
+coverage.json
+.pytest_cache/
+
+# Windows artifacts
+nul
+.aider*
+
+# Environment
+.env
+
+# Database
+*.db
+*.sqlite
+
+# Node/Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+
+# Logs
+*.log
