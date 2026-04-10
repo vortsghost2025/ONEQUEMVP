@@ -1,39 +1,61 @@
-version: '3.9'
+version: '3.8'
 
 services:
-  onequeue:
-    build: .
-    container_name: onequeue
-    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     ports:
-      - "8081:8081"
-    environment:
-      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - POLLING_INTERVAL_SECONDS=1
-      - DATABASE_URL=sqlite:////app/onequeue.db
+      - "8000:8000"
     volumes:
-      - onequeue-data:/app/data
+      - ./data:/app/data
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DATABASE_URL=sqlite:///./data/onequeue.db
+      - LOG_LEVEL=INFO
+      - POLLING_INTERVAL_SECONDS=1.0
     depends_on:
-      - ollama
-    networks:
-      - onequeue-network
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
   ollama:
     image: ollama/ollama:latest
-    container_name: ollama
-    restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
       - ollama-data:/root/.ollama
-    networks:
-      - onequeue-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
 
 volumes:
-  onequeue-data:
   ollama-data:
-
-networks:
-  onequeue-network:
-    driver: bridge
