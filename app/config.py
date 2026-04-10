@@ -10,6 +10,8 @@ class AppSettings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     POLLING_INTERVAL_SECONDS: float = 1.0
     NVIDIA_API_KEY: str = ""
+    KILO_API_KEY: str = ""
+    KILO_GATEWAY_URL: str = "https://api.kilo.ai/v1"  # KILO gateway endpoint
     PREFER_LOCAL_GPU: bool = True  # Route to local GPU when available
 
     class Config:
