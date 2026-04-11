@@ -4,11 +4,12 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy.pool import StaticPool
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["OLLAMA_BASE_URL"] = "http://localhost:11434"
 os.environ["LOG_LEVEL"] = "WARNING"
+os.environ["NVIDIA_API_KEY"] = ""
 
 
 @pytest.fixture(scope="function")
@@ -30,20 +31,21 @@ def session(engine):
 
 @pytest.fixture(scope="function")
 def client(engine):
-    from app.main import app
-    from app.utils import get_session
-    def override_get_session():
-        with Session(engine) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_get_session
-
     with patch("app.services.monitor.psutil.disk_usage") as mock_disk:
-        mock_disk.return_value = type("obj", (object,), {"percent": 50})()
+        mock_disk.return_value = MagicMock(percent=50)
+        
+        from app.main import app, get_session
+        
+        def override_get_session():
+            with Session(engine) as session:
+                yield session
+
+        app.dependency_overrides[get_session] = override_get_session
+
         with TestClient(app, raise_server_exceptions=False) as test_client:
             yield test_client
 
-    app.dependency_overrides.clear()
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture(scope="function")

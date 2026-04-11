@@ -6,3 +6,5 @@ httpx
 pydantic-settings
 python-dotenv
 tenacity>=8.2.0
+pytest>=7.4.0
+pytest-cov>=4.1.0
