@@ -23,6 +23,7 @@ from app.api import (
     nvidia as nvidia_router,
     router_api,
     ai_idea,
+    ollama as ollama_router,
 )
 
 
@@ -136,6 +137,7 @@ app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 app.include_router(settings_router.router, prefix="/settings", tags=["settings"])
 app.include_router(queue_router.router, prefix="/queue", tags=["queue"])
 app.include_router(nvidia_router.router, prefix="/nvidia", tags=["nvidia"])
+app.include_router(ollama_router.router, prefix="/ollama", tags=["ollama"])
 app.include_router(router_api.router, prefix="/router", tags=["router"])
 app.include_router(ai_idea.router, prefix="/ai-idea", tags=["ai-idea"])
 

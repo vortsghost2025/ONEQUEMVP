@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllModels, getSmartRoute } from './api';
+import { getSmartRoute, getOllamaModels, getNvidiaModels } from './api';
 
 // Top 10 recommended models from benchmark tests
 const TOP_MODELS = [
@@ -16,6 +16,16 @@ const TOP_MODELS = [
 ];
 
 const TOP_MODEL_IDS = TOP_MODELS.map(m => m.id);
+
+const DEFAULT_OLLAMA_MODELS = [
+  "llama3:latest",
+  "llama3.1:latest",
+  "mistral:latest",
+  "codellama:7b",
+  "qwen2.5-coder:7b",
+  "llama3:8b",
+  "mistral:7b",
+];
 
 export default function ModelSelector({
   value,
@@ -42,23 +52,38 @@ export default function ModelSelector({
   const fetchModels = async () => {
     try {
       setLoading(true);
-      const data = await getAllModels();
-
-      // Group models by provider
-      const nvidiaModels = data.data.filter(m => m.id.includes('/') && m.owned_by !== 'local');
-      const ollamaModels = data.data.filter(m => m.owned_by === 'local' || !m.id.includes('/'));
-
-      // Separate top recommended models from others
+      
+      const [ollamaData, nvidiaData] = await Promise.all([
+        getOllamaModels().catch(() => ({ models: DEFAULT_OLLAMA_MODELS })),
+        getNvidiaModels().catch(() => ({ models: [] }))
+      ]);
+      
+      const ollamaModels = ollamaData.models || [];
+      const nvidiaModels = (nvidiaData.models || []).map(m => ({
+        id: typeof m === 'string' ? m : m.id,
+        name: typeof m === 'string' ? m.split('/').pop() : m.name || m.id
+      }));
+      
       const topRecommended = nvidiaModels.filter(m => TOP_MODEL_IDS.includes(m.id));
       const otherModels = nvidiaModels.filter(m => !TOP_MODEL_IDS.includes(m.id));
-
+      
+      const curatedModels = [
+        { id: "meta/llama-4-maverick-17b-128e-instruct", name: "Llama 4 Maverick" },
+        { id: "deepseek-ai/deepseek-v3.2", name: "DeepSeek V3.2" },
+        { id: "nvidia/llama-3.3-nemotron-super-49b-v1.5", name: "Llama 3.3 Nemotron Super" },
+        { id: "qwen/qwen2.5-coder-32b-instruct", name: "Qwen Coder 32B" },
+        { id: "deepseek-ai/deepseek-r1-distill-llama-8b", name: "DeepSeek R1" },
+        { id: "microsoft/phi-3-mini-4k-instruct", name: "Phi-3 Mini" },
+        { id: "meta/llama-3.1-70b-instruct", name: "Llama 3.1 70B" },
+      ];
+      
       setModels([
         { group: 'Smart Routing', models: [{ id: 'auto', name: 'Auto-select best model', tier: 'smart' }] },
-        { group: '⭐ Top Recommended (Tested & Optimized)', models: TOP_MODELS.filter(tm => 
+        { group: '⭐ Top Recommended', models: TOP_MODELS.filter(tm => 
           nvidiaModels.some(nm => nm.id === tm.id)
         ) },
-        { group: 'Other NVIDIA Models', models: otherModels.slice(0, 15) },
-        { group: 'Ollama Local', models: ollamaModels }
+        { group: 'Cloud (NVIDIA)', models: [...curatedModels, ...otherModels.filter(m => !curatedModels.find(c => c.id === m.id)).slice(0, 8)] },
+        { group: 'Local (Ollama)', models: ollamaModels.map(m => ({ id: m, name: m })) }
       ]);
     } catch (err) {
       setError('Failed to load models: ' + err.message);

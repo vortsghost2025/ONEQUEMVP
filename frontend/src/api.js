@@ -60,6 +60,10 @@ export async function getNvidiaModels() {
   return handleResponse(await fetch(BASE_URL + '/nvidia/models'));
 }
 
+export async function getOllamaModels() {
+  return handleResponse(await fetch(BASE_URL + '/ollama/models'));
+}
+
 export async function getCuratedModels() {
   return handleResponse(await fetch(BASE_URL + '/nvidia/curated'));
 }
