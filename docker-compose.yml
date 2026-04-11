@@ -59,4 +59,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  ollama-data:
+   ollama-data:
+   sqlite-data:
