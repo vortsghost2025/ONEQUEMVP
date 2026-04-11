@@ -290,6 +290,48 @@ body {
   color: var(--text-primary);
 }
 
+.health-indicators {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-left: 1px solid var(--gray-200);
+  margin-left: var(--spacing-2);
+}
+
+.health-dot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: background-color var(--transition-base);
+}
+
+.health-green {
+  background-color: #22c55e;
+}
+
+.health-yellow {
+  background-color: #eab308;
+}
+
+.health-red {
+  background-color: #ef4444;
+}
+
+.health-label {
+  font-size: 10px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .queue-metrics {
   display: flex;
   gap: var(--spacing-4);
