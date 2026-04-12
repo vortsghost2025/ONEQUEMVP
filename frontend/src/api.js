@@ -132,3 +132,18 @@ export async function openaiChat(messages, model = 'auto', options = {}) {
 export async function getSystemHealth() {
   return handleResponse(await fetch(BASE_URL + '/queue/health'));
 }
+
+// Check Ollama availability
+export async function checkOllamaHealth() {
+  try {
+    const response = await fetch(BASE_URL.replace('8081', '11434') + '/api/tags', { method: 'GET' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Check NVIDIA API availability
+export async function getNvidiaHealth() {
+  return { configured: !!localStorage.getItem('nvidia_api_key') || !!sessionStorage.getItem('nvidia_api_key') };
+}

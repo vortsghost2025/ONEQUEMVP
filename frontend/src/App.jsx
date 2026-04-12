@@ -15,6 +15,7 @@ cancelTask,
 retryTask,
 getSettings,
 updateSettings,
+getSystemHealth,
 } from './api';
 
 const POLL_INTERVAL = 3000;
@@ -27,6 +28,9 @@ const [settings, setSettings] = useState({ max_ram_percent: 85, max_cpu_percent:
 const [loading, setLoading] = useState(false);
 const [activeTab, setActiveTab] = useState('tasks');
 const [recommendedModel, setRecommendedModel] = useState(null);
+const [healthStatus, setHealthStatus] = useState({ backend: 'unknown', ollama: 'unknown', nvidia_api: 'unknown' });
+
+const HEALTH_POLL_INTERVAL = 10000;
 
   useEffect(() => {
     const fetchQueue = async () => {
@@ -70,6 +74,20 @@ const [recommendedModel, setRecommendedModel] = useState(null);
       }
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const data = await getSystemHealth();
+        setHealthStatus(data);
+      } catch (e) {
+        setHealthStatus({ backend: 'down', ollama: 'unknown', nvidia_api: 'unknown' });
+      }
+    };
+    fetchHealth();
+    const id = setInterval(fetchHealth, HEALTH_POLL_INTERVAL);
+    return () => clearInterval(id);
   }, []);
 
   const handlePause = async () => {
@@ -176,10 +194,37 @@ OneQueue
 <HealthDashboard />
 
 <nav className="queue-status-nav" aria-label="Queue status">
-<div className={`status-indicator ${queue.queue_paused ? 'paused' : 'running'}`}>
-<span className="status-dot" aria-hidden="true"></span>
-<span className="status-label">{queue.queue_paused ? 'Paused' : 'Running'}</span>
-</div>
+            <div className={`status-indicator ${queue.queue_paused ? 'paused' : 'running'}`}>
+              <span className="status-dot" aria-hidden="true"></span>
+              <span className="status-label">{queue.queue_paused ? 'Paused' : 'Running'}</span>
+            </div>
+
+            <div className="health-indicators" aria-label="Service health status">
+              <div className="health-dot-container">
+                <span 
+                  className={`health-dot ${healthStatus.backend === 'healthy' ? 'health-green' : healthStatus.backend === 'down' ? 'health-red' : 'health-yellow'}`}
+                  aria-label={`Backend: ${healthStatus.backend}`}
+                  aria-hidden="true"
+                />
+                <span className="health-label">Backend</span>
+              </div>
+              <div className="health-dot-container">
+                <span 
+                  className={`health-dot ${healthStatus.ollama === 'healthy' ? 'health-green' : healthStatus.ollama === 'offline' ? 'health-red' : healthStatus.ollama === 'unknown' ? 'health-yellow' : 'health-yellow'}`}
+                  aria-label={`Ollama: ${healthStatus.ollama}`}
+                  aria-hidden="true"
+                />
+                <span className="health-label">Ollama</span>
+              </div>
+              <div className="health-dot-container">
+                <span 
+                  className={`health-dot ${healthStatus.nvidia_api === 'configured' ? 'health-green' : healthStatus.nvidia_api === 'invalid_format' ? 'health-yellow' : healthStatus.nvidia_api === 'missing_key' ? 'health-red' : 'health-yellow'}`}
+                  aria-label={`NVIDIA: ${healthStatus.nvidia_api}`}
+                  aria-hidden="true"
+                />
+                <span className="health-label">NVIDIA</span>
+              </div>
+            </div>
             
             <div className="queue-metrics">
               <div className="metric">
