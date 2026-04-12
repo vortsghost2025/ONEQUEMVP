@@ -5,7 +5,7 @@ API endpoints for Smart Router, Benchmark, and OpenAI Proxy
 import logging
 from fastapi import APIRouter, HTTPException, Depends, Body
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 # ✅ Clean import - app/schemas/chat.py has ZERO project dependencies
@@ -55,17 +55,17 @@ def get_openai_proxy():
 
 # Request models
 class RouteRequest(BaseModel):
-    prompt: str
-    preferred_model: Optional[str] = None
+    prompt: str = Field(..., min_length=1, max_length=100000)
+    preferred_model: Optional[str] = Field(default=None, max_length=200)
     prefer_speed: Optional[bool] = False
     prefer_quality: Optional[bool] = False
     require_local: Optional[bool] = False
 
 
 class BenchmarkRequest(BaseModel):
-    models: Optional[List[str]] = None
-    tests: Optional[List[str]] = None
-    suite: Optional[str] = None  # "speed_test", "quality_test", "code_test", etc.
+    models: Optional[List[str]] = Field(default=None, max_length=20)
+    tests: Optional[List[str]] = Field(default=None, max_length=50)
+    suite: Optional[str] = Field(default=None, max_length=50)
 
 
 # Create routers
