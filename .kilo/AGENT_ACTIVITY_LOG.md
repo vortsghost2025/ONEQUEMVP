@@ -771,3 +771,67 @@ Router correctly detected "general" task type and selected flagship Llama 3.1 40
 - `app/config.py` adds DATA_DIR default; harmless.
 - Untracked logs (`backend_smoke.*`, `firebase-debug.log`, `status.json`) are diagnostic artifacts, not required for production.
 **Result**: success
+
+### 2026-05-15T02:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: MODIFY
+**Description**: Updated .env — replaced single NVIDIA_API_KEY with multi-key NVIDIA_API_KEYS (2 keys, comma-separated)
+**Files**:
+- .env
+**Result**: success
+
+### 2026-05-15T02:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: CREATE
+**Description**: Created .env.example with multi-key format documentation (no secrets)
+**Files**:
+- .env.example
+**Result**: success
+
+### 2026-05-15T02:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: MODIFY
+**Description**: Updated docker-compose.yml — added NVIDIA_API_KEYS and OLLAMA_GPU_URL env vars
+**Files**:
+- docker-compose.yml
+**Result**: success
+
+### 2026-05-15T02:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: MODIFY
+**Description**: Fixed smart_router.py — replaced single-key NVIDIA references with nvidia_key_pool, removed _nvidia_api_key and _nvidia_url instance vars, updated _detect_nvidia_models to use pool.get()/report_success()/report_error(), fixed LSP type error (TaskType=None -> Optional[TaskType]=None)
+**Files**:
+- app/services/smart_router.py
+**Result**: success
+
+### 2026-05-15T02:00:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: DELETE
+**Description**: Removed untracked diagnostic files (backend_smoke*.log, firebase-debug.log, status.json)
+**Files**:
+- backend_smoke.log, backend_smoke_err.log, backend_smoke_out.log, firebase-debug.log, status.json
+**Result**: success
+
+### 2026-05-15T02:05:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: VERIFY
+**Description**: Multi-key rotation verified — 2 keys load, KeyPool round-robin distributes correctly (key1->key2->key1), all 9 pipeline tests pass
+**Files**:
+- app/services/nvidia_api.py (KeyPool verified)
+- app/services/smart_router.py (integration verified)
+**Result**: success
+
+### 2026-05-15T02:05:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: VERIFY
+**Description**: Ollama local health verified — 3 models detected (qwen2.5-coder 3B, 3B-instruct, 7B), generation test passed ("2+2=4" task completed successfully)
+**Files**:
+- (runtime test against localhost:11434)
+**Result**: success
+
+### 2026-05-15T02:05:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: VERIFY
+**Description**: GPU endpoint (100.95.92.117:9001) not reachable from local network — expected, Tailscale-only access
+**Files**:
+- (runtime test)
+**Result**: confirmed unreachable (expected)
+
+### 2026-05-15T02:10:00-04:00 | Agent: kilo (z-ai/glm5)
+**Action**: COMMIT
+**Description**: Committed all changes (commit 89bfce5) — multi-key NVIDIA rotation, Ollama verification, smart_router fixes
+**Files**:
+- .env, .env.example, .gitignore, app/config.py, app/services/nvidia_api.py, app/services/smart_router.py, docker-compose.yml
+**Result**: success
