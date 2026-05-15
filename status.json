@@ -1,0 +1,9 @@
+{
+  "ollama": true,
+  "timestamp": "2026-04-24T11:40:40",
+  "backend": [
+    "  TCP    0.0.0.0:3000           0.0.0.0:0              LISTENING       50172",
+    "  TCP    [::]:3000              [::]:0                 LISTENING       50172"
+  ],
+  "frontend": false
+}

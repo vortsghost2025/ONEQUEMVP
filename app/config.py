@@ -7,6 +7,7 @@ class AppSettings(BaseSettings):
         "http://100.95.92.117:9001"  # Local PC via Tailscale (your RTX 5060)
     )
     DATABASE_URL: str = "sqlite:///./data/onequeue.db"
+    DATA_DIR: str = "./data"
     LOG_LEVEL: str = "INFO"
     POLLING_INTERVAL_SECONDS: float = 1.0
     NVIDIA_API_KEY: str = ""

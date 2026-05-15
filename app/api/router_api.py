@@ -38,8 +38,10 @@ def get_model_benchmark():
     global _model_benchmark
     if _model_benchmark is None:
         from app.services.model_benchmark import ModelBenchmark
+        from app.services.nvidia_api import NvidiaAPI
+        from app.services import ollama
 
-        _model_benchmark = ModelBenchmark()
+        _model_benchmark = ModelBenchmark(nvidia_api=NvidiaAPI(), ollama_api=ollama)
     return _model_benchmark
 
 
@@ -333,11 +335,11 @@ async def generate_with_fallback(request: RouteRequest):
 
     for attempt_model in fallback_chain:
         try:
-            # Import APIs dynamically to avoid circular dependency
             if smart_router._is_nvidia_model(attempt_model):
-                from app.api import nvidia as nvidia_router
+                from app.services.nvidia_api import NvidiaAPI
 
-                response = await nvidia_router.generate(
+                nvidia_api = NvidiaAPI()
+                response = await nvidia_api.generate(
                     model=attempt_model, prompt=request.prompt, max_tokens=2048
                 )
                 content = (
