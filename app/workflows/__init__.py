@@ -1,0 +1,1 @@
+# WE4FREE Activity Summarizer workflow package
