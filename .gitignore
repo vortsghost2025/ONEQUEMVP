@@ -1,17 +1,27 @@
 __pycache__/
 *.pyc
+*.pyo
 .coverage
 coverage.json
 .pytest_cache/
 
+# Diagnostic / log files
+backend_smoke.log
+backend_smoke_err.log
+backend_smoke_out.log
+firebase-debug.log
+status.json
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
 # Windows artifacts
 nul
 .aider*
-.env
-.env
-.env
-.env
-.env
-.env
-.env
-.env
+
+# Data
+data/
+*.db

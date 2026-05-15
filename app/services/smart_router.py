@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import logging
 
 from app.config import settings
+from app.services.nvidia_api import pool as nvidia_key_pool
 
 logger = logging.getLogger("onequeue.router")
 
@@ -52,16 +53,14 @@ class SmartRouter:
     def __init__(self):
         self.models = self._initialize_model_registry()
         self.benchmarks: Dict[str, Dict] = {}
-        
+
         # Model auto-detection
         self._available_ollama_models: List[str] = []
         self._available_nvidia_models: List[str] = []
         self._detection_cache_ttl = timedelta(seconds=60)
         self._last_detection: Optional[datetime] = None
-        
+
         # NVIDIA API settings
-        self._nvidia_url = "https://integrate.api.nvidia.com/v1"
-        self._nvidia_api_key = settings.NVIDIA_API_KEY
 
     def _is_nvidia_model(self, model_id: str) -> bool:
         """Check if model is from NVIDIA"""
@@ -288,10 +287,12 @@ class SmartRouter:
 
         return models
 
-    async def detect_available_models(self, force_refresh: bool = False) -> Dict[str, List[str]]:
+    async def detect_available_models(
+        self, force_refresh: bool = False
+    ) -> Dict[str, List[str]]:
         """
         Detect available models from Ollama and NVIDIA API.
-        
+
         Returns:
             {
                 "ollama": ["llama3:latest", "codellama:7b", ...],
@@ -305,7 +306,8 @@ class SmartRouter:
                 return {
                     "ollama": self._available_ollama_models,
                     "nvidia": self._available_nvidia_models,
-                    "all": self._available_ollama_models + self._available_nvidia_models,
+                    "all": self._available_ollama_models
+                    + self._available_nvidia_models,
                 }
 
         ollama_models = []
@@ -313,9 +315,9 @@ class SmartRouter:
 
         # Detect Ollama models
         ollama_models = await self._detect_ollama_models()
-        
-        # Detect NVIDIA models (if API key available)
-        if self._nvidia_api_key and self._nvidia_api_key.startswith("nvapi-"):
+
+        # Detect NVIDIA models (if API keys available)
+        if nvidia_key_pool.available:
             nvidia_models = await self._detect_nvidia_models()
 
         # Update cache
@@ -323,7 +325,9 @@ class SmartRouter:
         self._available_nvidia_models = nvidia_models
         self._last_detection = datetime.utcnow()
 
-        logger.info(f"Model detection: {len(ollama_models)} Ollama, {len(nvidia_models)} NVIDIA")
+        logger.info(
+            f"Model detection: {len(ollama_models)} Ollama, {len(nvidia_models)} NVIDIA"
+        )
 
         return {
             "ollama": ollama_models,
@@ -334,7 +338,7 @@ class SmartRouter:
     async def _detect_ollama_models(self) -> List[str]:
         """Query local Ollama for available models"""
         models = []
-        
+
         # Try primary URL
         ollama_urls = [settings.OLLAMA_BASE_URL]
         if settings.OLLAMA_GPU_URL:
@@ -346,7 +350,11 @@ class SmartRouter:
                     response = await client.get(f"{url}/api/tags", timeout=3.0)
                     if response.status_code == 200:
                         data = response.json()
-                        models = [m.get("name", "") for m in data.get("models", []) if m.get("name")]
+                        models = [
+                            m.get("name", "")
+                            for m in data.get("models", [])
+                            if m.get("name")
+                        ]
                         logger.info(f"Ollama at {url}: {len(models)} models")
                         break
             except Exception as e:
@@ -356,14 +364,20 @@ class SmartRouter:
         return models
 
     async def _detect_nvidia_models(self) -> List[str]:
-        """Query NVIDIA API for available models"""
+        """Query NVIDIA API for available models using key pool"""
         models = []
-        
+
+        key = nvidia_key_pool.get()
+        if not key:
+            logger.debug("No NVIDIA API key available from pool")
+            return models
+
+        nvidia_url = "https://integrate.api.nvidia.com/v1"
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
-                    f"{self._nvidia_url}/models",
-                    headers={"Authorization": f"Bearer {self._nvidia_api_key}"},
+                    f"{nvidia_url}/models",
+                    headers={"Authorization": f"Bearer {key}"},
                     timeout=5.0,
                 )
                 if response.status_code == 200:
@@ -374,8 +388,17 @@ class SmartRouter:
                         if model_id:
                             models.append(model_id)
                     logger.info(f"NVIDIA API: {len(models)} models available")
+                    nvidia_key_pool.report_success(key)
+                elif response.status_code in (401, 429):
+                    cooldown = 60.0 if response.status_code == 429 else 10.0
+                    nvidia_key_pool.report_error(key, cooldown=cooldown)
+                    logger.warning(f"NVIDIA API key error {response.status_code}, cooling {cooldown}s")
+                else:
+                    nvidia_key_pool.report_error(key, cooldown=10.0)
+                    logger.warning(f"NVIDIA API error {response.status_code}")
         except Exception as e:
             logger.debug(f"NVIDIA API error: {e}")
+            nvidia_key_pool.report_error(key, cooldown=30.0)
 
         return models
 
@@ -386,7 +409,7 @@ class SmartRouter:
         """
         if not self._last_detection:
             return {"ollama": [], "nvidia": [], "all": []}
-        
+
         return {
             "ollama": self._available_ollama_models,
             "nvidia": self._available_nvidia_models,
@@ -538,7 +561,7 @@ class SmartRouter:
         # 3. Get available models (cached)
         available = self.get_available_models_sync()
         available_set = set(available["all"])
-        
+
         # 4. Filter models by requirements + availability
         candidates = []
         for model_id, model in self.models.items():
@@ -673,7 +696,7 @@ class SmartRouter:
         self.benchmarks[model_id].update(benchmark_data)
 
     def get_recommended_models(
-        self, task_type: TaskType = None, limit: int = 5
+        self, task_type: Optional[TaskType] = None, limit: int = 5
     ) -> List[ModelInfo]:
         """Get recommended models, optionally filtered by task type"""
         if task_type:

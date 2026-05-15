@@ -8,8 +8,9 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - NVIDIA_API_KEYS=${NVIDIA_API_KEYS}
       - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_GPU_URL=${OLLAMA_GPU_URL}
       - POLLING_INTERVAL_SECONDS=1
       - DATABASE_URL=sqlite:////app/onequeue.db
     volumes:
