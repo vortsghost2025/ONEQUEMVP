@@ -87,45 +87,31 @@ class SmartRouter:
             cost_tier="free",
         )
 
-        # Best coder - Qwen Coder 32B (0.63s, 10/10 code quality)
-        models["qwen/qwen2.5-coder-32b-instruct"] = ModelInfo(
-            id="qwen/qwen2.5-coder-32b-instruct",
-            name="Qwen Coder 32B",
-            provider="nvidia",
-            tier="coding",
-            category="coding",
-            context_length=32000,
-            specialty=[TaskType.CODE],
-            speed_score=9,
-            quality_score=10,
-            cost_tier="free",
-        )
-
-        # Best reasoning - DeepSeek R1 Distill (0.73s, 10/10 reasoning)
-        models["deepseek-ai/deepseek-r1-distill-llama-8b"] = ModelInfo(
-            id="deepseek-ai/deepseek-r1-distill-llama-8b",
-            name="DeepSeek R1 Distill",
+        # Best reasoning - DeepSeek V4 Flash (available, excellent reasoning)
+        models["deepseek-ai/deepseek-v4-flash"] = ModelInfo(
+            id="deepseek-ai/deepseek-v4-flash",
+            name="DeepSeek V4 Flash",
             provider="nvidia",
             tier="reasoning",
             category="reasoning",
             context_length=128000,
             specialty=[TaskType.REASONING, TaskType.MATH],
-            speed_score=8,
-            quality_score=10,
+            speed_score=9,
+            quality_score=9,
             cost_tier="free",
         )
 
-        # Best vision + general - Phi-3.5 Vision (0.52s, 9/10 quality)
-        models["microsoft/phi-3.5-vision-instruct"] = ModelInfo(
-            id="microsoft/phi-3.5-vision-instruct",
-            name="Phi-3.5 Vision",
+        # Fast multimodal - Phi-4 Mini (available, fast general-purpose)
+        models["microsoft/phi-4-mini-instruct"] = ModelInfo(
+            id="microsoft/phi-4-mini-instruct",
+            name="Phi-4 Mini",
             provider="nvidia",
-            tier="multimodal",
+            tier="fast",
             category="general",
             context_length=128000,
-            specialty=[TaskType.GENERAL, TaskType.CODE, TaskType.MULTILINGUAL],
+            specialty=[TaskType.GENERAL, TaskType.CODE],
             speed_score=10,
-            quality_score=9,
+            quality_score=8,
             cost_tier="free",
         )
 
@@ -159,17 +145,17 @@ class SmartRouter:
         )
 
         # === TIER 3: FAST BUT LESS CAPABLE (For speed-critical tasks) ===
-        # Fastest overall - Phi-3 Mini (0.52s, 8/10 quality)
-        models["microsoft/phi-3-mini-4k-instruct"] = ModelInfo(
-            id="microsoft/phi-3-mini-4k-instruct",
-            name="Phi-3 Mini",
+        # Fast small - Gemma 3 4B (0.48s, 7/10 quality)
+        models["google/gemma-3-4b-it"] = ModelInfo(
+            id="google/gemma-3-4b-it",
+            name="Gemma 3 4B",
             provider="nvidia",
             tier="fast",
             category="general",
             context_length=4096,
             specialty=[TaskType.GENERAL],
             speed_score=10,
-            quality_score=8,
+            quality_score=7,
             cost_tier="free",
         )
 
@@ -202,38 +188,27 @@ class SmartRouter:
             cost_tier="free",
         )
 
-        # Highest quality - Llama 3.1 405B (0.76s, 10/10 quality, 405B params!)
-        models["meta/llama-3.1-405b-instruct"] = ModelInfo(
-            id="meta/llama-3.1-405b-instruct",
-            name="Llama 3.1 405B",
+        # NOTE: Llama 3.1 405B not provisioned; using 70B as flagship general
+        # Llama 3.1 70B available at meta/llama-3.1-70b-instruct (already below)
+
+        # Large reasoning - Mistral Large 3 675B (available)
+        models["mistralai/mistral-large-3-675b-instruct-2512"] = ModelInfo(
+            id="mistralai/mistral-large-3-675b-instruct-2512",
+            name="Mistral Large 3",
             provider="nvidia",
             tier="flagship",
             category="general",
-            context_length=128000,
-            specialty=[TaskType.LONG_CONTEXT, TaskType.ANALYSIS, TaskType.CREATIVE],
-            speed_score=5,
+            context_length=32000,
+            specialty=[TaskType.GENERAL, TaskType.REASONING, TaskType.ANALYSIS],
+            speed_score=6,
             quality_score=10,
             cost_tier="free",
         )
 
-        # Multilingual - Mistral 7B (0.69s, 9/10 quality)
-        models["mistralai/mistral-7b-instruct"] = ModelInfo(
-            id="mistralai/mistral-7b-instruct",
-            name="Mistral 7B Instruct",
-            provider="nvidia",
-            tier="fast",
-            category="general",
-            context_length=32000,
-            specialty=[TaskType.GENERAL, TaskType.MULTILINGUAL, TaskType.CREATIVE],
-            speed_score=9,
-            quality_score=9,
-            cost_tier="free",
-        )
-
-        # Google's best - Gemma 3 27B (0.86s, 9/10 quality)
-        models["google/gemma-3-27b-it"] = ModelInfo(
-            id="google/gemma-3-27b-it",
-            name="Gemma 3 27B",
+        # Google's best - Gemma 4 31B (available)
+        models["google/gemma-4-31b-it"] = ModelInfo(
+            id="google/gemma-4-31b-it",
+            name="Gemma 4 31B",
             provider="nvidia",
             tier="flagship",
             category="general",
@@ -244,44 +219,57 @@ class SmartRouter:
             cost_tier="free",
         )
 
-        # NVIDIA optimized - Nemotron Ultra (0.69s, 10/10 quality)
-        models["nvidia/llama-3.1-nemotron-ultra"] = ModelInfo(
-            id="nvidia/llama-3.1-nemotron-ultra",
-            name="Nemotron Ultra",
+        # NVIDIA optimized - Nemotron Super 49B (available)
+        models["nvidia/llama-3.3-nemotron-super-49b-v1.5"] = ModelInfo(
+            id="nvidia/llama-3.3-nemotron-super-49b-v1.5",
+            name="Nemotron Super 49B",
             provider="nvidia",
             tier="flagship",
             category="general",
             context_length=128000,
             specialty=[TaskType.GENERAL, TaskType.ANALYSIS],
-            speed_score=8,
+            speed_score=7,
             quality_score=10,
             cost_tier="free",
         )
 
-        # Ollama Local Models
-        models["llama3:latest"] = ModelInfo(
-            id="llama3:latest",
-            name="Llama 3 (Local)",
+        # Ollama Local Models (must match actual running Ollama instance)
+        models["qwen2.5-coder:3b-instruct-q4_K_M"] = ModelInfo(
+            id="qwen2.5-coder:3b-instruct-q4_K_M",
+            name="Qwen 2.5 Coder 3B Q4 (Local)",
             provider="ollama",
             tier="local",
-            category="general",
+            category="coding",
             context_length=8192,
-            specialty=[TaskType.GENERAL],
+            specialty=[TaskType.CODE, TaskType.GENERAL],
             speed_score=10,
             quality_score=7,
             cost_tier="free",
         )
 
-        models["llama3:8b-instruct-q4_K_M"] = ModelInfo(
-            id="llama3:8b-instruct-q4_K_M",
-            name="Llama 3 8B Q4 (Local)",
+        models["qwen2.5-coder:3b"] = ModelInfo(
+            id="qwen2.5-coder:3b",
+            name="Qwen 2.5 Coder 3B (Local)",
             provider="ollama",
             tier="local",
-            category="general",
+            category="coding",
             context_length=8192,
-            specialty=[TaskType.GENERAL],
+            specialty=[TaskType.CODE, TaskType.GENERAL],
             speed_score=10,
             quality_score=6,
+            cost_tier="free",
+        )
+
+        models["qwen2.5-coder:7b"] = ModelInfo(
+            id="qwen2.5-coder:7b",
+            name="Qwen 2.5 Coder 7B (Local)",
+            provider="ollama",
+            tier="local",
+            category="coding",
+            context_length=8192,
+            specialty=[TaskType.CODE, TaskType.GENERAL],
+            speed_score=9,
+            quality_score=7,
             cost_tier="free",
         )
 
@@ -392,7 +380,9 @@ class SmartRouter:
                 elif response.status_code in (401, 429):
                     cooldown = 60.0 if response.status_code == 429 else 10.0
                     nvidia_key_pool.report_error(key, cooldown=cooldown)
-                    logger.warning(f"NVIDIA API key error {response.status_code}, cooling {cooldown}s")
+                    logger.warning(
+                        f"NVIDIA API key error {response.status_code}, cooling {cooldown}s"
+                    )
                 else:
                     nvidia_key_pool.report_error(key, cooldown=10.0)
                     logger.warning(f"NVIDIA API error {response.status_code}")
@@ -603,8 +593,16 @@ class SmartRouter:
         candidates.sort(key=lambda x: x[2], reverse=True)
 
         if not candidates:
-            # Fallback to Llama 3 local
-            return "llama3:latest", self.models["llama3:latest"]
+            # Fallback to local Ollama qwen2.5-coder:3b
+            if "qwen2.5-coder:3b" in self.models:
+                return "qwen2.5-coder:3b", self.models["qwen2.5-coder:3b"]
+            # Ultimate fallback to first registered ollama model
+            for mid, m in self.models.items():
+                if m.provider == "ollama":
+                    return mid, m
+            return "qwen2.5-coder:3b-instruct-q4_K_M", self.models[
+                "qwen2.5-coder:3b-instruct-q4_K_M"
+            ]
 
         # 5. Return best model
         best_model_id, best_model, score = candidates[0]
@@ -620,7 +618,7 @@ class SmartRouter:
         Example: Llama 4 Maverick → Llama 3.1 70B → Phi-3 Mini
         """
         if primary_model not in self.models:
-            return ["microsoft/phi-3-mini-4k-instruct"]
+            return ["google/gemma-3-4b-it"]
 
         model = self.models[primary_model]
         chain = [primary_model]
@@ -634,18 +632,18 @@ class SmartRouter:
         if TaskType.CODE in model.specialty:
             chain.extend(
                 [
-                    "qwen/qwen2.5-coder-32b-instruct",  # Fast + capable coder
                     "qwen/qwen3-coder-480b-a35b-instruct",  # Most capable coder
-                    "microsoft/phi-3-mini-4k-instruct",  # Fastest fallback
+                    "qwen/qwen3-next-80b-a3b-instruct",  # Fast coder
+                    "google/gemma-3-4b-it",  # Fastest fallback
                 ]
             )
         # Reasoning-specific chain
         elif TaskType.REASONING in model.specialty or TaskType.MATH in model.specialty:
             chain.extend(
                 [
-                    "deepseek-ai/deepseek-r1-distill-llama-8b",  # Best reasoning
+                    "deepseek-ai/deepseek-v4-flash",  # Best reasoning
                     "meta/llama-3.1-70b-instruct",  # High quality general
-                    "microsoft/phi-3-mini-4k-instruct",  # Fastest fallback
+                    "google/gemma-3-4b-it",  # Fastest fallback
                 ]
             )
         # General-purpose chain (speed + quality optimized)
@@ -654,7 +652,7 @@ class SmartRouter:
                 [
                     "meta/llama-4-maverick-17b-128e-instruct",  # Best quality/speed
                     "meta/llama-3.1-70b-instruct",  # High quality fallback
-                    "microsoft/phi-3-mini-4k-instruct",  # Fastest fallback
+                    "google/gemma-3-4b-it",  # Fastest fallback
                 ]
             )
 
@@ -709,22 +707,23 @@ class SmartRouter:
 
         return models[:limit]
 
-    def get_optimal_model_for_task(self, task_type: TaskType) -> str:
-        """
-        Get the best model for a specific task type based on benchmark results.
 
-        Returns model ID string.
-        """
-        if task_type == TaskType.CODE:
-            return "qwen/qwen2.5-coder-32b-instruct"  # Best coder (0.63s)
-        elif task_type == TaskType.REASONING or task_type == TaskType.MATH:
-            return "deepseek-ai/deepseek-r1-distill-llama-8b"  # Best reasoning (0.73s)
-        elif task_type == TaskType.MULTILINGUAL:
-            return "mistralai/mistral-7b-instruct"  # Great multilingual support
-        elif task_type == TaskType.LONG_CONTEXT:
-            return "meta/llama-3.1-405b-instruct"  # Highest quality, large context
-        elif task_type == TaskType.CREATIVE:
-            return "meta/llama-4-maverick-17b-128e-instruct"  # Best creative
-        else:
-            # Default to Llama 4 Maverick - best overall quality/speed balance
-            return "meta/llama-4-maverick-17b-128e-instruct"
+def get_optimal_model_for_task(self, task_type: TaskType) -> str:
+    """
+    Get the best model for a specific task type based on benchmark results.
+
+    Returns model ID string.
+    """
+    if task_type == TaskType.CODE:
+        return "qwen/qwen3-coder-480b-a35b-instruct"  # Best coder
+    elif task_type == TaskType.REASONING or task_type == TaskType.MATH:
+        return "deepseek-ai/deepseek-v4-flash"  # Best reasoning
+    elif task_type == TaskType.MULTILINGUAL:
+        return "mistralai/mistral-large-3-675b-instruct-2512"  # Multilingual
+    elif task_type == TaskType.LONG_CONTEXT:
+        return "meta/llama-3.1-70b-instruct"  # Large context available
+    elif task_type == TaskType.CREATIVE:
+        return "meta/llama-4-maverick-17b-128e-instruct"  # Best creative
+    else:
+        # Default to Llama 4 Maverick - best overall quality/speed balance
+        return "meta/llama-4-maverick-17b-128e-instruct"

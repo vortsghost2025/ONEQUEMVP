@@ -215,8 +215,8 @@ class NvidiaAPI:
                 "category": "general",
             },
             {
-                "id": "deepseek-ai/deepseek-v3.2",
-                "name": "DeepSeek V3.2",
+                "id": "deepseek-ai/deepseek-v4-pro",
+                "name": "DeepSeek V4 Pro",
                 "tier": "flagship",
                 "category": "reasoning",
             },
@@ -227,8 +227,8 @@ class NvidiaAPI:
                 "category": "general",
             },
             {
-                "id": "meta/llama-3.1-405b-instruct",
-                "name": "Llama 3.1 405B",
+                "id": "meta/llama-3.1-70b-instruct",
+                "name": "Llama 3.1 70B",
                 "tier": "flagship",
                 "category": "general",
             },

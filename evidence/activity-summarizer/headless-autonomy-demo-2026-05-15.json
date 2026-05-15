@@ -1,0 +1,30 @@
+{
+  "packet": {
+    "kind": "runtime_snapshot",
+    "source": "lane:archivist/headless",
+    "title": "Headless autonomous substrate corrected and runtime-verified",
+    "body": "OUTPUT_PROVENANCE:\nagent: z-ai/glm5\nlane: archivist\ngenerated_at: 2026-05-15T00:35:00Z\nsession_id: archivist-session-20260514\n\nRuntime status snapshot for exterior verification. All claims now have verifiable evidence:\n- 18 active services listed by name\n- 10 stopped duplicates all active=inactive, enabled=disabled\n- 4/4 lanes OK_HK supervision board confirms\n- 16 archived outbox messages (7 archivist + 9 kernel)\n- 48 node processes (down from 65 before duplicate removal)\n- 86400s (24h) throttle in CI loop script\n\nThe strangely synchronized noisy agent-like behavior was real autonomous runtime but with false complexity from duplicates, broken broadcast, and health misclassification. Fixing those does not remove the autonomy; it makes it legible."
+  },
+  "summary": {
+    "id": "c44e2ba74e03",
+    "category": "repair",
+    "repo_or_lane": "lane:archivist/headless",
+    "summary_text": "Corrected and verified the headless autonomous substrate by addressing duplicates, broken broadcasts, and health misclassification.",
+    "operator_relevance": "high",
+    "needs_sean": false,
+    "suggested_surface": "Pulse",
+    "model_used": "qwen2.5-coder:3b",
+    "processing_time_ms": 2924,
+    "timestamp": "2026-05-15T03:35:53.898562+00:00",
+    "raw_input_kind": "runtime_snapshot",
+    "confidence": 0.9
+  },
+  "evaluation": [
+    "GOOD: category=repair",
+    "GOOD: relevance=high",
+    "surface=Pulse",
+    "needs_sean=False",
+    "confidence=0.9"
+  ],
+  "engine_path": "OLLAMA"
+}
